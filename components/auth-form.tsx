@@ -4,19 +4,11 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useToast } from "@/hooks/use-toast"
-import { Loader2 } from "lucide-react"
 
 export default function AuthForm() {
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("login")
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -46,33 +38,18 @@ export default function AuthForm() {
     setIsLoading(true)
 
     try {
-      const result = await signIn("credentials", {
-        username: loginData.username,
-        password: loginData.password,
-        redirect: false,
-      })
+      // Simulate login
+      await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      if (result?.error) {
-        throw new Error(result.error)
-      }
-
-      toast({
-        title: "Login successful",
-        description: "Welcome back to Jekle!",
-      })
-
-      // Manual redirect based on role
+      // Redirect based on username
       if (loginData.username === "djamalax19") {
         router.push("/admin")
       } else {
         router.push("/dashboard")
       }
     } catch (error) {
-      toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid username or password",
-        variant: "destructive",
-      })
+      console.error("Login failed:", error)
+      alert("Login failed. Please check your credentials.")
     } finally {
       setIsLoading(false)
     }
@@ -83,131 +60,138 @@ export default function AuthForm() {
     setIsLoading(true)
 
     try {
-      // In a real app, you would call your API here
-      // For now, we'll just simulate a successful signup
-      setTimeout(() => {
-        toast({
-          title: "Account created successfully",
-          description: "You can now log in with your credentials",
-        })
-        setActiveTab("login")
-        setIsLoading(false)
-      }, 1000)
+      // Simulate signup
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      alert("Account created successfully! You can now log in.")
+      setActiveTab("login")
     } catch (error) {
-      toast({
-        title: "Signup failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-        variant: "destructive",
-      })
+      console.error("Signup failed:", error)
+      alert("Signup failed. Please try again.")
+    } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="login">Login</TabsTrigger>
-        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-      </TabsList>
+    <div className="w-full">
+      <div className="flex border-b border-gray-700 mb-6">
+        <button
+          className={`px-4 py-2 flex-1 ${activeTab === "login" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-400"}`}
+          onClick={() => setActiveTab("login")}
+        >
+          Login
+        </button>
+        <button
+          className={`px-4 py-2 flex-1 ${activeTab === "signup" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-400"}`}
+          onClick={() => setActiveTab("signup")}
+        >
+          Sign Up
+        </button>
+      </div>
 
-      <TabsContent value="login" className="space-y-4 pt-4">
+      {activeTab === "login" && (
         <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-1">
+              Username
+            </label>
+            <input
               id="username"
               name="username"
-              placeholder="Enter your username"
+              type="text"
               required
+              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
               value={loginData.username}
               onChange={handleLoginChange}
               disabled={isLoading}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">
+              Password
+            </label>
+            <input
               id="password"
               name="password"
               type="password"
-              placeholder="Enter your password"
               required
+              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
               value={loginData.password}
               onChange={handleLoginChange}
               disabled={isLoading}
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Logging in...
-              </>
-            ) : (
-              "Login"
-            )}
-          </Button>
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading ? "Logging in..." : "Login"}
+          </button>
         </form>
-      </TabsContent>
+      )}
 
-      <TabsContent value="signup" className="space-y-4 pt-4">
+      {activeTab === "signup" && (
         <form onSubmit={handleSignupSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="signup-username">Username</Label>
-            <Input
+          <div>
+            <label htmlFor="signup-username" className="block text-sm font-medium text-gray-400 mb-1">
+              Username
+            </label>
+            <input
               id="signup-username"
               name="username"
-              placeholder="Choose a username"
+              type="text"
               required
+              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
               value={signupData.username}
               onChange={handleSignupChange}
               disabled={isLoading}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-1">
+              Email
+            </label>
+            <input
               id="email"
               name="email"
               type="email"
-              placeholder="Enter your email"
               required
+              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
               value={signupData.email}
               onChange={handleSignupChange}
               disabled={isLoading}
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
-            <Input
+          <div>
+            <label htmlFor="signup-password" className="block text-sm font-medium text-gray-400 mb-1">
+              Password
+            </label>
+            <input
               id="signup-password"
               name="password"
               type="password"
-              placeholder="Choose a password"
               required
-              minLength={6}
+              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
               value={signupData.password}
               onChange={handleSignupChange}
               disabled={isLoading}
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              "Create Account"
-            )}
-          </Button>
+          <button
+            type="submit"
+            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+            disabled={isLoading}
+          >
+            {isLoading ? "Creating account..." : "Create Account"}
+          </button>
         </form>
-      </TabsContent>
-    </Tabs>
+      )}
+    </div>
   )
 }
