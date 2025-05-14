@@ -22,7 +22,7 @@ export default function UserPage() {
   const headerRef = useRef<HTMLElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  // Ajouter ces états après les autres déclarations d'état
+  // États pour le menu et le profil
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [userName, setUserName] = useState("John Doe")
@@ -34,6 +34,13 @@ export default function UserPage() {
     if (!token) {
       router.push("/")
       return
+    }
+
+    // Récupérer le nom d'utilisateur du localStorage s'il existe
+    const savedUserName = localStorage.getItem("userName")
+    if (savedUserName) {
+      setUserName(savedUserName)
+      setUserAvatar(savedUserName.charAt(0))
     }
 
     // Charger les films (simulé)
@@ -307,6 +314,7 @@ export default function UserPage() {
   const handleLogout = () => {
     localStorage.removeItem("token")
     localStorage.removeItem("role")
+    localStorage.removeItem("userName")
     router.push("/")
   }
 
@@ -413,7 +421,7 @@ export default function UserPage() {
 
   // Gestionnaires d'événements pour le modal
   useEffect(() => {
-    const closeBtn = document.getElementsByClassName("close")[0] as HTMLElement
+    const closeBtn = document.getElementsByClassName("netflix-modal-close")[0] as HTMLElement
     const modal = document.getElementById("videoModal")
 
     if (closeBtn) {
@@ -468,7 +476,7 @@ export default function UserPage() {
     </div>
   )
 
-  // Ajouter ces fonctions après les autres fonctions
+  // Fonctions pour le menu et le profil
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
@@ -484,9 +492,25 @@ export default function UserPage() {
     if (newName) {
       setUserName(newName)
       setUserAvatar(newName.charAt(0))
+      localStorage.setItem("userName", newName)
     }
     setIsProfileModalOpen(false)
   }
+
+  // Fermer le menu lorsqu'on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement
+      if (isMenuOpen && !target.closest(".netflix-dropdown-menu") && !target.closest(".netflix-menu-toggle")) {
+        setIsMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [isMenuOpen])
 
   return (
     <div className="netflix-container">
@@ -508,7 +532,7 @@ export default function UserPage() {
         </div>
         <div className="netflix-header-right">
           <div className={`netflix-search ${isSearchActive ? "active" : ""}`}>
-            <button className="netflix-search-toggle" onClick={toggleSearch}>
+            <button className="netflix-search-toggle" onClick={toggleSearch} aria-label="Rechercher">
               🔍
             </button>
             <input
@@ -518,11 +542,12 @@ export default function UserPage() {
               value={searchTerm}
               onChange={handleSearch}
               className={isSearchActive ? "active" : ""}
+              aria-label="Rechercher des films et séries"
             />
           </div>
 
           {/* Menu hamburger */}
-          <button className="netflix-menu-toggle" onClick={toggleMenu}>
+          <button className="netflix-menu-toggle" onClick={toggleMenu} aria-label="Menu">
             <div className={`hamburger-icon ${isMenuOpen ? "open" : ""}`}>
               <span></span>
               <span></span>
@@ -733,6 +758,7 @@ export default function UserPage() {
               className="netflix-episode-selector"
               value={selectedEpisode}
               onChange={handleEpisodeChange}
+              aria-label="Sélectionner un épisode"
             >
               {selectedMovie.episodes.map((_, index: number) => (
                 <option key={index} value={index}>
@@ -750,6 +776,7 @@ export default function UserPage() {
             allowFullScreen
             allow="autoplay; encrypted-media"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            title="Lecteur vidéo"
           ></iframe>
           <div id="movieDetails" className="netflix-modal-details"></div>
         </div>
