@@ -515,6 +515,8 @@ export default function UserPage() {
   return (
     <div className="netflix-container">
       {/* Header */}
+      {/* Modifier la section de l'en-tête pour afficher la navigation sur mobile et rapprocher l'icône de recherche du menu hamburger */}
+
       <header ref={headerRef} className={`netflix-header ${isHeaderScrolled ? "scrolled" : ""}`}>
         <div className="netflix-header-left">
           <div className="netflix-logo">
@@ -568,28 +570,6 @@ export default function UserPage() {
               <span>Déconnexion</span>
             </div>
           </div>
-
-          {/* Modal de profil */}
-          {isProfileModalOpen && (
-            <div className="netflix-profile-modal">
-              <div className="netflix-profile-modal-content">
-                <span className="netflix-modal-close" onClick={toggleProfileModal}>
-                  &times;
-                </span>
-                <h3>Modifier le profil</h3>
-                <form onSubmit={updateProfile}>
-                  <div className="netflix-profile-avatar-large">{userAvatar}</div>
-                  <div className="netflix-form-group">
-                    <label htmlFor="profileName">Nom</label>
-                    <input type="text" id="profileName" name="name" defaultValue={userName} className="netflix-input" />
-                  </div>
-                  <button type="submit" className="netflix-button">
-                    Enregistrer
-                  </button>
-                </form>
-              </div>
-            </div>
-          )}
         </div>
       </header>
 
@@ -756,6 +736,27 @@ export default function UserPage() {
             <select
               id="episodeSelector"
               className="netflix-episode-selector"
+              value={selectedEpisode}
+              onChange={handleEpisodeChange}
+              aria-label="Sélectionner un épisode"
+            >
+              {selectedMovie.episodes.map((_, index: number) => (
+                <option key={index} value={index}>
+                  Épisode {index + 1}
+                </option>
+              ))}
+            </select>
+          )}
+          <iframe
+            id="videoPlayer"
+            width="100%"
+            height="500"
+            src=""
+            frameBorder="0"
+            allowFullScreen
+            allow="autoplay; encrypted-media"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            title="Lecteur vidéo"
               value={selectedEpisode}
               onChange={handleEpisodeChange}
               aria-label="Sélectionner un épisode"
