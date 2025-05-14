@@ -88,14 +88,15 @@ body::after {
   position: relative;
 }
 
-/* Modifier le style du conteneur du logo pour le centrer parfaitement */
+/* Modifier le style du conteneur du logo pour le rétrécir et le déplacer vers la gauche */
 .icon-container {
-  width: 100px;
-  height: 100px;
+  width: 80px; /* Réduit de 100px à 80px */
+  height: 80px; /* Réduit de 100px à 80px */
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
+  margin-left: calc(50% - 50px); /* Déplace légèrement vers la gauche */
   background-color: #0a0b0f; /* Fond noir */
   border-radius: 50%; /* Rond */
   border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
@@ -131,8 +132,8 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 60px;
-  height: 60px;
+  width: 50px; /* Réduit de 60px à 50px */
+  height: 50px; /* Réduit de 60px à 50px */
   object-fit: contain;
   position: relative;
   z-index: 2;
