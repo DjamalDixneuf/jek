@@ -102,6 +102,7 @@ body::after {
   border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3); /* Lueur bleue */
   position: relative;
+  margin-left: -165px;
 }
 
 .icon-container::after {
@@ -131,8 +132,8 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 200px; /* Logo plus petit que le conteneur */
-  height: 200px;
+  width: 30px; /* Logo plus petit que le conteneur */
+  height: 30px;
   object-fit: contain;
   position: relative;
   z-index: 2;
