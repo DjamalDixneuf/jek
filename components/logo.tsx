@@ -14,7 +14,7 @@ export default function Logo() {
     <Image
       src="/logo.png"
       alt="Jekle Logo"
-      width={30}
+      width={10}
       height={10}
       className="icon-svg"
       onError={() => setError(true)}
