@@ -6,6 +6,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import "../styles/stylesA.css"
+import Logo from "../../components/logo"
 
 export default function UserPage() {
   const router = useRouter()
@@ -274,7 +275,7 @@ export default function UserPage() {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="icon-container">
-              <Image src="/logo-inter.png" alt="Jekle Logo" width={60} height={50} className="iconf-svg" />
+              <Logo className="iconf-svg" />
             </div>
             <h1 className="text-2xl font-bold">Jekle Entertainment</h1>
           </div>
