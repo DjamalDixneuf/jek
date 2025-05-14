@@ -10,19 +10,30 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        primary: {
+          DEFAULT: "#1a73e8",
+          dark: "#155bb5",
+          light: "#4285f4",
+        },
+        secondary: {
+          DEFAULT: "#4ecca3",
+          dark: "#45b293",
+          light: "#5fddb4",
+        },
+        background: {
+          DEFAULT: "#0a0b0f",
+          light: "#12141c",
+          card: "#1a1d28",
+        },
+        text: {
+          DEFAULT: "#ffffff",
+          secondary: "#aaaaaa",
+          muted: "#777777",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
@@ -45,9 +56,14 @@ module.exports = {
         },
       },
       borderRadius: {
+        DEFAULT: "0.5rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        card: "0 4px 6px rgba(0, 0, 0, 0.1)",
+        hover: "0 10px 15px rgba(0, 0, 0, 0.2)",
       },
     },
   },
