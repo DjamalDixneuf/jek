@@ -1,3 +1,13 @@
+/* Ajoutez ces règles au début du fichier pour réinitialiser correctement les marges et le débordement */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
 /* Base styles */
@@ -22,6 +32,8 @@ body {
   width: 100%;
   min-height: 100vh;
   background-color: #0a0b0f;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Netflix-style header */
@@ -438,6 +450,8 @@ body {
 .netflix-main {
   padding: 0 4%;
   margin-bottom: 50px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Netflix-style loading */
@@ -466,6 +480,8 @@ body {
 /* Netflix-style rows */
 .netflix-row {
   margin-bottom: 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .netflix-row-title {
@@ -482,6 +498,8 @@ body {
   padding: 10px 0;
   scrollbar-width: none; /* Firefox */
   -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .netflix-row-content::-webkit-scrollbar {
@@ -856,6 +874,37 @@ body {
 
   #videoPlayer {
     height: 40vh !important;
+  }
+
+  .netflix-container,
+  .netflix-main,
+  .netflix-row,
+  .netflix-row-content,
+  .netflix-featured {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
+  }
+
+  .netflix-featured-content {
+    width: 100%;
+    padding: 0 4%;
+    padding-top: 60px;
+    padding-bottom: 20px;
+    justify-content: flex-end;
+    box-sizing: border-box;
+  }
+
+  /* Assurez-vous que le header prend toute la largeur */
+  .netflix-header {
+    width: 100%;
+    left: 0;
+    right: 0;
+    box-sizing: border-box;
   }
 }
 
