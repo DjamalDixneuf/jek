@@ -20,8 +20,8 @@ export default function Logo({ className = "", width = 60, height = 60, page = "
   }
 
   // Ajuster la taille en fonction de la page
-  const adjustedWidth = page === "login" ? 30 : width
-  const adjustedHeight = page === "login" ? 30 : height
+  const adjustedWidth = page === "login" ? 90 : width
+  const adjustedHeight = page === "login" ? 90 : height
 
   return (
     <>
