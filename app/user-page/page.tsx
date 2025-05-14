@@ -22,6 +22,12 @@ export default function UserPage() {
   const headerRef = useRef<HTMLElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
+  // Ajouter ces états après les autres déclarations d'état
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [userName, setUserName] = useState("John Doe")
+  const [userAvatar, setUserAvatar] = useState("J")
+
   // Vérifier l'authentification
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -462,6 +468,26 @@ export default function UserPage() {
     </div>
   )
 
+  // Ajouter ces fonctions après les autres fonctions
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen)
+  }
+
+  const toggleProfileModal = () => {
+    setIsProfileModalOpen(!isProfileModalOpen)
+  }
+
+  const updateProfile = (e: React.FormEvent) => {
+    e.preventDefault()
+    const formData = new FormData(e.target as HTMLFormElement)
+    const newName = formData.get("name") as string
+    if (newName) {
+      setUserName(newName)
+      setUserAvatar(newName.charAt(0))
+    }
+    setIsProfileModalOpen(false)
+  }
+
   return (
     <div className="netflix-container">
       {/* Header */}
@@ -494,15 +520,51 @@ export default function UserPage() {
               className={isSearchActive ? "active" : ""}
             />
           </div>
-          <button className="netflix-btn" onClick={handleUserButton}>
-            📋
+
+          {/* Menu hamburger */}
+          <button className="netflix-menu-toggle" onClick={toggleMenu}>
+            <div className={`hamburger-icon ${isMenuOpen ? "open" : ""}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
           </button>
-          <button className="netflix-btn" onClick={handleLogout}>
-            🚪
-          </button>
-          <div className="netflix-profile">
-            <div className="netflix-avatar">J</div>
+
+          {/* Menu déroulant */}
+          <div className={`netflix-dropdown-menu ${isMenuOpen ? "open" : ""}`}>
+            <div className="netflix-profile-menu-item" onClick={toggleProfileModal}>
+              <div className="netflix-avatar">{userAvatar}</div>
+              <span>Profil</span>
+            </div>
+            <div className="netflix-menu-item" onClick={handleUserButton}>
+              <span>Demandes</span>
+            </div>
+            <div className="netflix-menu-item" onClick={handleLogout}>
+              <span>Déconnexion</span>
+            </div>
           </div>
+
+          {/* Modal de profil */}
+          {isProfileModalOpen && (
+            <div className="netflix-profile-modal">
+              <div className="netflix-profile-modal-content">
+                <span className="netflix-modal-close" onClick={toggleProfileModal}>
+                  &times;
+                </span>
+                <h3>Modifier le profil</h3>
+                <form onSubmit={updateProfile}>
+                  <div className="netflix-profile-avatar-large">{userAvatar}</div>
+                  <div className="netflix-form-group">
+                    <label htmlFor="profileName">Nom</label>
+                    <input type="text" id="profileName" name="name" defaultValue={userName} className="netflix-input" />
+                  </div>
+                  <button type="submit" className="netflix-button">
+                    Enregistrer
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
