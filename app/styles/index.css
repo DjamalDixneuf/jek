@@ -88,10 +88,10 @@ body::after {
   position: relative;
 }
 
-/* Modifier le style du conteneur du logo pour qu'il soit plus petit que l'image */
+/* Modifier le style du conteneur du logo pour qu'il soit plus grand que l'image */
 .icon-container {
-  width: 90px; /* Conteneur plus petit */
-  height: 90px; /* Conteneur plus petit */
+  width: 60px; /* Conteneur réduit mais plus grand que l'image */
+  height: 60px; /* Conteneur réduit mais plus grand que l'image */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,7 +102,6 @@ body::after {
   border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3); /* Lueur bleue */
   position: relative;
-  overflow: visible; /* Permet au logo de déborder */
 }
 
 .icon-container::after {
@@ -132,8 +131,8 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 10px; /* Logo plus grand que le conteneur */
-  height: 10px; /* Logo plus grand que le conteneur */
+  width: 40px; /* Logo plus petit que le conteneur */
+  height: 40px; /* Logo plus petit que le conteneur */
   object-fit: contain;
   position: relative;
   z-index: 2;
