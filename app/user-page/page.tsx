@@ -17,7 +17,10 @@ export default function UserPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [activeCategory, setActiveCategory] = useState("all")
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
+  const [isSearchActive, setIsSearchActive] = useState(false)
+  const [featuredMovie, setFeaturedMovie] = useState<any | null>(null)
   const headerRef = useRef<HTMLElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -185,7 +188,75 @@ export default function UserPage() {
           rating: 4.6,
           categories: ["crime", "drame", "thriller"],
         },
+        {
+          id: 9,
+          title: "The Mandalorian",
+          type: "série",
+          duration: "2 saisons",
+          genre: "Action, Aventure, Science Fiction",
+          releaseYear: "2019",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description: "Les aventures d'un chasseur de primes mandalorien dans les confins de la galaxie.",
+          episodes: [
+            { title: "Épisode 1", description: "Le Mandalorien", url: "https://example.com/mando-s01e01.mp4" },
+            { title: "Épisode 2", description: "L'Enfant", url: "https://example.com/mando-s01e02.mp4" },
+          ],
+          rating: 4.8,
+          categories: ["sci-fi", "action", "aventure"],
+        },
+        {
+          id: 10,
+          title: "Black Mirror",
+          type: "série",
+          duration: "5 saisons",
+          genre: "Drame, Science Fiction, Thriller",
+          releaseYear: "2011",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description:
+            "Une série d'anthologie explorant un futur proche où les innovations technologiques entrent en collision avec nos instincts les plus sombres.",
+          episodes: [
+            { title: "Épisode 1", description: "L'Hymne national", url: "https://example.com/bm-s01e01.mp4" },
+            { title: "Épisode 2", description: "15 millions de mérites", url: "https://example.com/bm-s01e02.mp4" },
+          ],
+          rating: 4.7,
+          categories: ["sci-fi", "drame", "thriller"],
+        },
+        {
+          id: 11,
+          title: "Dune",
+          type: "film",
+          duration: "2h 35min",
+          genre: "Action, Aventure, Science Fiction",
+          releaseYear: "2021",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description:
+            "L'histoire du fils d'une famille noble chargé de protéger la ressource la plus précieuse de la galaxie.",
+          videoUrl: "https://example.com/dune.mp4",
+          rating: 4.7,
+          categories: ["sci-fi", "action", "aventure"],
+        },
+        {
+          id: 12,
+          title: "The Queen's Gambit",
+          type: "série",
+          duration: "1 saison",
+          genre: "Drame",
+          releaseYear: "2020",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description:
+            "L'histoire d'une prodige des échecs qui lutte contre la dépendance tout en essayant de devenir la meilleure joueuse d'échecs du monde.",
+          episodes: [
+            { title: "Épisode 1", description: "Ouvertures", url: "https://example.com/qg-s01e01.mp4" },
+            { title: "Épisode 2", description: "Échanges", url: "https://example.com/qg-s01e02.mp4" },
+          ],
+          rating: 4.8,
+          categories: ["drame"],
+        },
       ]
+
+      // Sélectionner un film aléatoire pour la mise en avant
+      const randomIndex = Math.floor(Math.random() * mockMovies.length)
+      setFeaturedMovie(mockMovies[randomIndex])
 
       setMovies(mockMovies)
     } catch (error) {
@@ -197,6 +268,15 @@ export default function UserPage() {
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value)
+  }
+
+  const toggleSearch = () => {
+    setIsSearchActive(!isSearchActive)
+    if (!isSearchActive && searchInputRef.current) {
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 100)
+    }
   }
 
   const handleCategoryChange = (category: string) => {
@@ -216,6 +296,7 @@ export default function UserPage() {
   const popularMovies = movies.filter((movie) => movie.categories.includes("populaire"))
   const actionMovies = movies.filter((movie) => movie.categories.includes("action"))
   const dramaMovies = movies.filter((movie) => movie.categories.includes("drame"))
+  const scifiMovies = movies.filter((movie) => movie.categories.includes("sci-fi"))
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -355,159 +436,239 @@ export default function UserPage() {
 
   // Fonction pour rendre une carte de film
   const renderMovieCard = (movie: any) => (
-    <div key={movie.id} className="card">
-      <div className="movie-thumbnail" onClick={() => openMovieModal(movie)}>
+    <div key={movie.id} className="netflix-card" onClick={() => openMovieModal(movie)}>
+      <div className="netflix-card-img">
         <Image
           src={movie.thumbnailUrl || "/placeholder.svg"}
           alt={movie.title}
           width={200}
           height={300}
-          className="movie-thumbnail"
+          className="netflix-thumbnail"
         />
-        <div className="play-button">▶</div>
       </div>
-      <div className="card-content">
-        <h3>{movie.title}</h3>
-        <p>{movie.duration}</p>
-        <p>{movie.type === "série" ? `${movie.episodes?.length || 0} épisodes` : "Film"}</p>
-        <div className="badge">★ {movie.rating}</div>
+      <div className="netflix-card-content">
+        <h3 className="netflix-card-title">{movie.title}</h3>
+        <div className="netflix-card-info">
+          <span className="netflix-card-year">{movie.releaseYear}</span>
+          <span className="netflix-card-rating">★ {movie.rating}</span>
+          <span className="netflix-card-duration">{movie.duration}</span>
+        </div>
+        <p className="netflix-card-desc">{movie.description.substring(0, 100)}...</p>
+        <div className="netflix-card-buttons">
+          <button className="netflix-play-btn">▶ Lecture</button>
+          <button className="netflix-info-btn">ℹ️ Plus d'infos</button>
+        </div>
       </div>
     </div>
   )
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen">
-      <header ref={headerRef} className={`header ${isHeaderScrolled ? "scrolled" : ""}`}>
-        <div className="container mx-auto">
-          <div className="header-container">
-            <div className="logo-container">
-              <div className="icon-container">
-                <Logo className="iconf-svg" />
-              </div>
-              <h1>Jekle Entertainment</h1>
-            </div>
-
-            <div className="search-container">
-              <input
-                type="search"
-                id="searchInput"
-                placeholder="Rechercher un film ou une série..."
-                className="input"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-              <span className="search-icon">🔍</span>
-            </div>
-
-            <div className="actions-container">
-              <button className="iconU-button" id="userButton" onClick={handleUserButton}>
-                <span className="icon-svg">📋</span>
-                <span>Demandes</span>
-              </button>
-              <button className="iconL-button" id="logoutButton" onClick={handleLogout}>
-                <span className="icon-svg">🚪</span>
-                <span>Déconnexion</span>
-              </button>
-            </div>
+    <div className="netflix-container">
+      {/* Header */}
+      <header ref={headerRef} className={`netflix-header ${isHeaderScrolled ? "scrolled" : ""}`}>
+        <div className="netflix-header-left">
+          <div className="netflix-logo">
+            <Logo className="iconf-svg" />
+          </div>
+          <nav className="netflix-nav">
+            <ul>
+              <li className="active">Accueil</li>
+              <li>Séries</li>
+              <li>Films</li>
+              <li>Nouveautés</li>
+              <li>Ma liste</li>
+            </ul>
+          </nav>
+        </div>
+        <div className="netflix-header-right">
+          <div className={`netflix-search ${isSearchActive ? "active" : ""}`}>
+            <button className="netflix-search-toggle" onClick={toggleSearch}>
+              🔍
+            </button>
+            <input
+              ref={searchInputRef}
+              type="search"
+              placeholder="Titres, personnes, genres"
+              value={searchTerm}
+              onChange={handleSearch}
+              className={isSearchActive ? "active" : ""}
+            />
+          </div>
+          <button className="netflix-btn" onClick={handleUserButton}>
+            📋
+          </button>
+          <button className="netflix-btn" onClick={handleLogout}>
+            🚪
+          </button>
+          <div className="netflix-profile">
+            <div className="netflix-avatar">J</div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto py-8">
-        <div className="categories-wrapper">
-          <div className="categories">
-            <button
-              className={`category-button ${activeCategory === "all" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("all")}
-            >
-              Tous
-            </button>
-            <button
-              className={`category-button ${activeCategory === "populaire" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("populaire")}
-            >
-              Populaires
-            </button>
-            <button
-              className={`category-button ${activeCategory === "action" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("action")}
-            >
-              Action
-            </button>
-            <button
-              className={`category-button ${activeCategory === "drame" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("drame")}
-            >
-              Drame
-            </button>
-            <button
-              className={`category-button ${activeCategory === "sci-fi" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("sci-fi")}
-            >
-              Science Fiction
-            </button>
-            <button
-              className={`category-button ${activeCategory === "aventure" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("aventure")}
-            >
-              Aventure
-            </button>
-            <button
-              className={`category-button ${activeCategory === "fantastique" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("fantastique")}
-            >
-              Fantastique
-            </button>
-            <button
-              className={`category-button ${activeCategory === "crime" ? "active" : ""}`}
-              onClick={() => handleCategoryChange("crime")}
-            >
-              Crime
-            </button>
+      {/* Featured Content */}
+      {featuredMovie && !isLoading && (
+        <div className="netflix-featured">
+          <div className="netflix-featured-content">
+            <h1 className="netflix-featured-title">{featuredMovie.title}</h1>
+            <div className="netflix-featured-meta">
+              <span className="netflix-match">Recommandé à 98%</span>
+              <span className="netflix-year">{featuredMovie.releaseYear}</span>
+              <span className="netflix-duration">{featuredMovie.duration}</span>
+              <span className="netflix-rating">★ {featuredMovie.rating}</span>
+            </div>
+            <p className="netflix-featured-desc">{featuredMovie.description}</p>
+            <div className="netflix-featured-buttons">
+              <button className="netflix-play-button" onClick={() => openMovieModal(featuredMovie)}>
+                ▶ Lecture
+              </button>
+              <button className="netflix-more-button">ℹ️ Plus d'infos</button>
+            </div>
+          </div>
+          <div className="netflix-featured-gradient"></div>
+          <div className="netflix-featured-img">
+            <Image
+              src={featuredMovie.thumbnailUrl || "/placeholder.svg"}
+              alt={featuredMovie.title}
+              fill
+              style={{ objectFit: "cover" }}
+              priority
+            />
           </div>
         </div>
+      )}
 
+      {/* Main Content */}
+      <main className="netflix-main">
         {isLoading ? (
-          <div className="loading-container">
-            <div className="loading-spinner"></div>
-          </div>
-        ) : activeCategory === "all" ? (
-          <div className="content-sections">
-            <section className="content-section">
-              <h2 className="section-title">Populaires</h2>
-              <div className="grid">{popularMovies.map(renderMovieCard)}</div>
-            </section>
-
-            <section className="content-section">
-              <h2 className="section-title">Action</h2>
-              <div className="grid">{actionMovies.map(renderMovieCard)}</div>
-            </section>
-
-            <section className="content-section">
-              <h2 className="section-title">Drame</h2>
-              <div className="grid">{dramaMovies.map(renderMovieCard)}</div>
-            </section>
-          </div>
-        ) : filteredMovies.length > 0 ? (
-          <div className="content-section">
-            <h2 className="section-title">{activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)}</h2>
-            <div className="grid">{filteredMovies.map(renderMovieCard)}</div>
+          <div className="netflix-loading">
+            <div className="netflix-spinner"></div>
           </div>
         ) : (
-          <div className="empty-state">
-            <div className="empty-state-icon">🎬</div>
-            <p className="empty-state-text">Aucun film ou série ne correspond à votre recherche.</p>
-          </div>
+          <>
+            {/* Populaires */}
+            {popularMovies.length > 0 && (
+              <div className="netflix-row">
+                <h2 className="netflix-row-title">Populaires sur Jekle</h2>
+                <div className="netflix-row-content">
+                  {popularMovies.map((movie) => (
+                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                      <Image
+                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        width={200}
+                        height={300}
+                        className="netflix-item-img"
+                      />
+                      <div className="netflix-item-info">
+                        <h3>{movie.title}</h3>
+                        <div className="netflix-item-meta">
+                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                        </div>
+                        <p>{movie.description.substring(0, 80)}...</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Action */}
+            {actionMovies.length > 0 && (
+              <div className="netflix-row">
+                <h2 className="netflix-row-title">Action</h2>
+                <div className="netflix-row-content">
+                  {actionMovies.map((movie) => (
+                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                      <Image
+                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        width={200}
+                        height={300}
+                        className="netflix-item-img"
+                      />
+                      <div className="netflix-item-info">
+                        <h3>{movie.title}</h3>
+                        <div className="netflix-item-meta">
+                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                        </div>
+                        <p>{movie.description.substring(0, 80)}...</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Drame */}
+            {dramaMovies.length > 0 && (
+              <div className="netflix-row">
+                <h2 className="netflix-row-title">Drame</h2>
+                <div className="netflix-row-content">
+                  {dramaMovies.map((movie) => (
+                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                      <Image
+                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        width={200}
+                        height={300}
+                        className="netflix-item-img"
+                      />
+                      <div className="netflix-item-info">
+                        <h3>{movie.title}</h3>
+                        <div className="netflix-item-meta">
+                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                        </div>
+                        <p>{movie.description.substring(0, 80)}...</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Science Fiction */}
+            {scifiMovies.length > 0 && (
+              <div className="netflix-row">
+                <h2 className="netflix-row-title">Science Fiction</h2>
+                <div className="netflix-row-content">
+                  {scifiMovies.map((movie) => (
+                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                      <Image
+                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        alt={movie.title}
+                        width={200}
+                        height={300}
+                        className="netflix-item-img"
+                      />
+                      <div className="netflix-item-info">
+                        <h3>{movie.title}</h3>
+                        <div className="netflix-item-meta">
+                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                        </div>
+                        <p>{movie.description.substring(0, 80)}...</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </main>
 
-      <div id="videoModal" className="modal">
-        <div className="modal-content">
-          <span className="close">&times;</span>
+      {/* Modal */}
+      <div id="videoModal" className="netflix-modal">
+        <div className="netflix-modal-content">
+          <span className="netflix-modal-close">&times;</span>
           {selectedMovie?.type === "série" && selectedMovie?.episodes && (
             <select
               id="episodeSelector"
-              className="episode-selector"
+              className="netflix-episode-selector"
               value={selectedEpisode}
               onChange={handleEpisodeChange}
             >
@@ -528,7 +689,7 @@ export default function UserPage() {
             allow="autoplay; encrypted-media"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
           ></iframe>
-          <div id="movieDetails"></div>
+          <div id="movieDetails" className="netflix-modal-details"></div>
         </div>
       </div>
     </div>
