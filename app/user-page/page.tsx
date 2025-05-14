@@ -376,9 +376,9 @@ export default function UserPage() {
   )
 
   return (
-    <div className="bg-gray-900 text-white">
-      <header ref={headerRef} className={isHeaderScrolled ? "scrolled" : ""}>
-        <div className="container">
+    <div className="bg-gray-900 text-white min-h-screen">
+      <header ref={headerRef} className={`header ${isHeaderScrolled ? "scrolled" : ""}`}>
+        <div className="container mx-auto">
           <div className="header-container">
             <div className="logo-container">
               <div className="icon-container">
@@ -413,56 +413,58 @@ export default function UserPage() {
         </div>
       </header>
 
-      <main className="container">
-        <div className="categories">
-          <button
-            className={`category-button ${activeCategory === "all" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("all")}
-          >
-            Tous
-          </button>
-          <button
-            className={`category-button ${activeCategory === "populaire" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("populaire")}
-          >
-            Populaires
-          </button>
-          <button
-            className={`category-button ${activeCategory === "action" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("action")}
-          >
-            Action
-          </button>
-          <button
-            className={`category-button ${activeCategory === "drame" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("drame")}
-          >
-            Drame
-          </button>
-          <button
-            className={`category-button ${activeCategory === "sci-fi" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("sci-fi")}
-          >
-            Science Fiction
-          </button>
-          <button
-            className={`category-button ${activeCategory === "aventure" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("aventure")}
-          >
-            Aventure
-          </button>
-          <button
-            className={`category-button ${activeCategory === "fantastique" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("fantastique")}
-          >
-            Fantastique
-          </button>
-          <button
-            className={`category-button ${activeCategory === "crime" ? "active" : ""}`}
-            onClick={() => handleCategoryChange("crime")}
-          >
-            Crime
-          </button>
+      <main className="container mx-auto py-8">
+        <div className="categories-wrapper">
+          <div className="categories">
+            <button
+              className={`category-button ${activeCategory === "all" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("all")}
+            >
+              Tous
+            </button>
+            <button
+              className={`category-button ${activeCategory === "populaire" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("populaire")}
+            >
+              Populaires
+            </button>
+            <button
+              className={`category-button ${activeCategory === "action" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("action")}
+            >
+              Action
+            </button>
+            <button
+              className={`category-button ${activeCategory === "drame" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("drame")}
+            >
+              Drame
+            </button>
+            <button
+              className={`category-button ${activeCategory === "sci-fi" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("sci-fi")}
+            >
+              Science Fiction
+            </button>
+            <button
+              className={`category-button ${activeCategory === "aventure" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("aventure")}
+            >
+              Aventure
+            </button>
+            <button
+              className={`category-button ${activeCategory === "fantastique" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("fantastique")}
+            >
+              Fantastique
+            </button>
+            <button
+              className={`category-button ${activeCategory === "crime" ? "active" : ""}`}
+              onClick={() => handleCategoryChange("crime")}
+            >
+              Crime
+            </button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -470,18 +472,27 @@ export default function UserPage() {
             <div className="loading-spinner"></div>
           </div>
         ) : activeCategory === "all" ? (
-          <>
-            <h2 className="section-title">Populaires</h2>
-            <div className="grid">{popularMovies.map(renderMovieCard)}</div>
+          <div className="content-sections">
+            <section className="content-section">
+              <h2 className="section-title">Populaires</h2>
+              <div className="grid">{popularMovies.map(renderMovieCard)}</div>
+            </section>
 
-            <h2 className="section-title">Action</h2>
-            <div className="grid">{actionMovies.map(renderMovieCard)}</div>
+            <section className="content-section">
+              <h2 className="section-title">Action</h2>
+              <div className="grid">{actionMovies.map(renderMovieCard)}</div>
+            </section>
 
-            <h2 className="section-title">Drame</h2>
-            <div className="grid">{dramaMovies.map(renderMovieCard)}</div>
-          </>
+            <section className="content-section">
+              <h2 className="section-title">Drame</h2>
+              <div className="grid">{dramaMovies.map(renderMovieCard)}</div>
+            </section>
+          </div>
         ) : filteredMovies.length > 0 ? (
-          <div className="grid">{filteredMovies.map(renderMovieCard)}</div>
+          <div className="content-section">
+            <h2 className="section-title">{activeCategory.charAt(0).toUpperCase() + activeCategory.slice(1)}</h2>
+            <div className="grid">{filteredMovies.map(renderMovieCard)}</div>
+          </div>
         ) : (
           <div className="empty-state">
             <div className="empty-state-icon">🎬</div>
