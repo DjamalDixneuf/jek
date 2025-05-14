@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import "../styles/stylesA.css"
@@ -15,6 +15,9 @@ export default function UserPage() {
   const [selectedMovie, setSelectedMovie] = useState<any | null>(null)
   const [selectedEpisode, setSelectedEpisode] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [activeCategory, setActiveCategory] = useState("all")
+  const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
+  const headerRef = useRef<HTMLElement>(null)
 
   // Vérifier l'authentification
   useEffect(() => {
@@ -26,13 +29,27 @@ export default function UserPage() {
 
     // Charger les films (simulé)
     loadMovies()
+
+    // Ajouter l'écouteur de défilement
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
   }, [router])
+
+  const handleScroll = () => {
+    if (headerRef.current) {
+      if (window.scrollY > 50) {
+        setIsHeaderScrolled(true)
+      } else {
+        setIsHeaderScrolled(false)
+      }
+    }
+  }
 
   const loadMovies = async () => {
     setIsLoading(true)
     try {
       // Simuler le chargement des films depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      await new Promise((resolve) => setTimeout(resolve, 1500))
 
       // Données fictives pour la démo
       const mockMovies = [
@@ -47,6 +64,8 @@ export default function UserPage() {
           description:
             "Un voleur qui s'infiltre dans les rêves des autres pour voler leurs secrets se voit offrir une chance de retrouver sa vie normale.",
           videoUrl: "https://example.com/inception.mp4",
+          rating: 4.8,
+          categories: ["populaire", "action", "sci-fi"],
         },
         {
           id: 2,
@@ -56,6 +75,7 @@ export default function UserPage() {
           genre: "Drame, Crime",
           releaseYear: "2008",
           thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description: "Un professeur de chimie atteint d'un cancer devient fabricant et vendeur de méthamphétamine.",
           episodes: [
             {
               title: "Épisode 1",
@@ -68,6 +88,8 @@ export default function UserPage() {
               url: "https://example.com/bb-s01e02.mp4",
             },
           ],
+          rating: 4.9,
+          categories: ["populaire", "drame", "crime"],
         },
         {
           id: 3,
@@ -80,6 +102,8 @@ export default function UserPage() {
           description:
             "Batman s'allie au procureur Harvey Dent pour démanteler le crime organisé à Gotham, mais ils se retrouvent bientôt face au Joker.",
           videoUrl: "https://example.com/dark-knight.mp4",
+          rating: 4.9,
+          categories: ["populaire", "action", "drame"],
         },
         {
           id: 4,
@@ -89,6 +113,8 @@ export default function UserPage() {
           genre: "Drame, Fantastique, Horreur",
           releaseYear: "2016",
           thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description:
+            "Des enfants font face à des forces surnaturelles et à des expériences gouvernementales secrètes.",
           episodes: [
             {
               title: "Épisode 1",
@@ -97,6 +123,8 @@ export default function UserPage() {
             },
             { title: "Épisode 2", description: "La recherche commence", url: "https://example.com/st-s01e02.mp4" },
           ],
+          rating: 4.7,
+          categories: ["populaire", "fantastique", "horreur"],
         },
         {
           id: 5,
@@ -109,6 +137,8 @@ export default function UserPage() {
           description:
             "Une équipe d'explorateurs voyage à travers un trou de ver dans l'espace pour assurer la survie de l'humanité.",
           videoUrl: "https://example.com/interstellar.mp4",
+          rating: 4.8,
+          categories: ["sci-fi", "drame", "aventure"],
         },
         {
           id: 6,
@@ -118,10 +148,42 @@ export default function UserPage() {
           genre: "Action, Aventure, Drame",
           releaseYear: "2011",
           thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description: "Neuf familles nobles luttent pour le contrôle des terres de Westeros.",
           episodes: [
             { title: "Épisode 1", description: "L'hiver vient", url: "https://example.com/got-s01e01.mp4" },
             { title: "Épisode 2", description: "La route royale", url: "https://example.com/got-s01e02.mp4" },
           ],
+          rating: 4.7,
+          categories: ["populaire", "aventure", "drame"],
+        },
+        {
+          id: 7,
+          title: "The Witcher",
+          type: "série",
+          duration: "2 saisons",
+          genre: "Action, Aventure, Fantastique",
+          releaseYear: "2019",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description: "Le sorceleur Geralt, un chasseur de monstres, lutte pour trouver sa place dans un monde.",
+          episodes: [
+            { title: "Épisode 1", description: "Le début", url: "https://example.com/witcher-s01e01.mp4" },
+            { title: "Épisode 2", description: "La suite", url: "https://example.com/witcher-s01e02.mp4" },
+          ],
+          rating: 4.5,
+          categories: ["fantastique", "action", "aventure"],
+        },
+        {
+          id: 8,
+          title: "Joker",
+          type: "film",
+          duration: "2h 2min",
+          genre: "Crime, Drame, Thriller",
+          releaseYear: "2019",
+          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+          description: "L'histoire de l'origine du Joker, l'ennemi juré de Batman.",
+          videoUrl: "https://example.com/joker.mp4",
+          rating: 4.6,
+          categories: ["crime", "drame", "thriller"],
         },
       ]
 
@@ -137,11 +199,23 @@ export default function UserPage() {
     setSearchTerm(e.target.value)
   }
 
-  const filteredMovies = movies.filter(
-    (movie) =>
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category)
+  }
+
+  const filteredMovies = movies.filter((movie) => {
+    const matchesSearch =
       movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      movie.genre.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+      movie.genre.toLowerCase().includes(searchTerm.toLowerCase())
+
+    const matchesCategory = activeCategory === "all" || movie.categories.includes(activeCategory)
+
+    return matchesSearch && matchesCategory
+  })
+
+  const popularMovies = movies.filter((movie) => movie.categories.includes("populaire"))
+  const actionMovies = movies.filter((movie) => movie.categories.includes("action"))
+  const dramaMovies = movies.filter((movie) => movie.categories.includes("drame"))
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -159,6 +233,7 @@ export default function UserPage() {
     const modal = document.getElementById("videoModal")
     if (modal) {
       modal.style.display = "block"
+      document.body.style.overflow = "hidden" // Empêcher le défilement
     }
   }
 
@@ -166,6 +241,7 @@ export default function UserPage() {
     const modal = document.getElementById("videoModal")
     if (modal) {
       modal.style.display = "none"
+      document.body.style.overflow = "" // Réactiver le défilement
     }
     const videoPlayer = document.getElementById("videoPlayer") as HTMLIFrameElement
     if (videoPlayer) {
@@ -205,6 +281,10 @@ export default function UserPage() {
             <div class="movie-detail-label">Année:</div>
             <div class="movie-detail-value">${movie.releaseYear}</div>
           </div>
+          <div class="movie-detail-item">
+            <div class="movie-detail-label">Note:</div>
+            <div class="movie-detail-value">★ ${movie.rating || "N/A"}</div>
+          </div>
         </div>
         <div class="movie-description">
           <div class="movie-description-label">Description:</div>
@@ -230,6 +310,10 @@ export default function UserPage() {
           <div class="movie-detail-item">
             <div class="movie-detail-label">Année:</div>
             <div class="movie-detail-value">${movie.releaseYear}</div>
+          </div>
+          <div class="movie-detail-item">
+            <div class="movie-detail-label">Note:</div>
+            <div class="movie-detail-value">★ ${movie.rating || "N/A"}</div>
           </div>
         </div>
         <div class="movie-description">
@@ -269,68 +353,139 @@ export default function UserPage() {
     }
   }, [selectedMovie, selectedEpisode])
 
+  // Fonction pour rendre une carte de film
+  const renderMovieCard = (movie: any) => (
+    <div key={movie.id} className="card">
+      <div className="movie-thumbnail" onClick={() => openMovieModal(movie)}>
+        <Image
+          src={movie.thumbnailUrl || "/placeholder.svg"}
+          alt={movie.title}
+          width={200}
+          height={300}
+          className="movie-thumbnail"
+        />
+        <div className="play-button">▶</div>
+      </div>
+      <div className="card-content">
+        <h3>{movie.title}</h3>
+        <p>{movie.duration}</p>
+        <p>{movie.type === "série" ? `${movie.episodes?.length || 0} épisodes` : "Film"}</p>
+        <div className="badge">★ {movie.rating}</div>
+      </div>
+    </div>
+  )
+
   return (
     <div className="bg-gray-900 text-white">
-      <header className="bg-gray-800 p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <div className="icon-container">
-              <Logo className="iconf-svg" />
+      <header ref={headerRef} className={isHeaderScrolled ? "scrolled" : ""}>
+        <div className="container">
+          <div className="header-container">
+            <div className="logo-container">
+              <div className="icon-container">
+                <Logo className="iconf-svg" />
+              </div>
+              <h1>Jekle Entertainment</h1>
             </div>
-            <h1 className="text-2xl font-bold">Jekle Entertainment</h1>
-          </div>
-          <div className="flex items-center space-x-4">
-            <input
-              type="search"
-              id="searchInput"
-              placeholder="Rechercher un film ou une série..."
-              className="w-64 input"
-              value={searchTerm}
-              onChange={handleSearch}
-            />
-            <button className="iconU-button" id="userButton" onClick={handleUserButton}>
-              <span className="icon-svg">📋</span>
-            </button>
-            <button className="iconL-button" id="logoutButton" onClick={handleLogout}>
-              <span className="icon-svg">🚪</span>
-            </button>
+
+            <div className="search-container">
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Rechercher un film ou une série..."
+                className="input"
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+              <span className="search-icon">🔍</span>
+            </div>
+
+            <div className="actions-container">
+              <button className="iconU-button" id="userButton" onClick={handleUserButton}>
+                <span className="icon-svg">📋</span>
+                <span>Demandes</span>
+              </button>
+              <button className="iconL-button" id="logoutButton" onClick={handleLogout}>
+                <span className="icon-svg">🚪</span>
+                <span>Déconnexion</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto py-8">
-        <h2 className="text-2xl font-semibold mb-4">Films et Séries disponibles</h2>
+      <main className="container">
+        <div className="categories">
+          <button
+            className={`category-button ${activeCategory === "all" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("all")}
+          >
+            Tous
+          </button>
+          <button
+            className={`category-button ${activeCategory === "populaire" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("populaire")}
+          >
+            Populaires
+          </button>
+          <button
+            className={`category-button ${activeCategory === "action" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("action")}
+          >
+            Action
+          </button>
+          <button
+            className={`category-button ${activeCategory === "drame" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("drame")}
+          >
+            Drame
+          </button>
+          <button
+            className={`category-button ${activeCategory === "sci-fi" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("sci-fi")}
+          >
+            Science Fiction
+          </button>
+          <button
+            className={`category-button ${activeCategory === "aventure" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("aventure")}
+          >
+            Aventure
+          </button>
+          <button
+            className={`category-button ${activeCategory === "fantastique" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("fantastique")}
+          >
+            Fantastique
+          </button>
+          <button
+            className={`category-button ${activeCategory === "crime" ? "active" : ""}`}
+            onClick={() => handleCategoryChange("crime")}
+          >
+            Crime
+          </button>
+        </div>
 
         {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-center">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white mb-4"></div>
-              <p>Chargement des films...</p>
-            </div>
+          <div className="loading-container">
+            <div className="loading-spinner"></div>
           </div>
+        ) : activeCategory === "all" ? (
+          <>
+            <h2 className="section-title">Populaires</h2>
+            <div className="grid">{popularMovies.map(renderMovieCard)}</div>
+
+            <h2 className="section-title">Action</h2>
+            <div className="grid">{actionMovies.map(renderMovieCard)}</div>
+
+            <h2 className="section-title">Drame</h2>
+            <div className="grid">{dramaMovies.map(renderMovieCard)}</div>
+          </>
         ) : filteredMovies.length > 0 ? (
-          <div id="moviesContainer" className="grid">
-            {filteredMovies.map((movie) => (
-              <div key={movie.id} className="card">
-                <Image
-                  src={movie.thumbnailUrl || "/placeholder.svg"}
-                  alt={movie.title}
-                  width={180}
-                  height={260}
-                  className="movie-thumbnail"
-                  onClick={() => openMovieModal(movie)}
-                />
-                <div className="card-content">
-                  <h3>{movie.title}</h3>
-                  <p>{movie.duration}</p>
-                  <p>{movie.type === "série" ? `${movie.episodes?.length || 0} épisodes` : "Film"}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+          <div className="grid">{filteredMovies.map(renderMovieCard)}</div>
         ) : (
-          <div className="text-center py-12">
-            <p>Aucun film ou série ne correspond à votre recherche.</p>
+          <div className="empty-state">
+            <div className="empty-state-icon">🎬</div>
+            <p className="empty-state-text">Aucun film ou série ne correspond à votre recherche.</p>
           </div>
         )}
       </main>
@@ -344,7 +499,6 @@ export default function UserPage() {
               className="episode-selector"
               value={selectedEpisode}
               onChange={handleEpisodeChange}
-              style={{ display: "block" }}
             >
               {selectedMovie.episodes.map((_, index: number) => (
                 <option key={index} value={index}>
@@ -356,7 +510,7 @@ export default function UserPage() {
           <iframe
             id="videoPlayer"
             width="100%"
-            height="315"
+            height="500"
             src=""
             frameBorder="0"
             allowFullScreen
