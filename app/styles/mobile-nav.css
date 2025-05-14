@@ -1,0 +1,58 @@
+/* Styles spécifiques pour la navigation mobile */
+@media (max-width: 576px) {
+  /* Style pour la navigation horizontale défilante */
+  .netflix-nav {
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    padding: 5px 0;
+    margin-top: 5px;
+    width: 100%;
+  }
+  
+  .netflix-nav ul {
+    display: inline-flex;
+    padding-right: 20px;
+  }
+  
+  .netflix-nav li {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  
+  .netflix-nav li.active {
+    color: white;
+    font-weight: 500;
+  }
+  
+  /* Masquer la barre de défilement */
+  .netflix-nav::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Ajustement de l'en-tête pour la navigation mobile */
+  .netflix-header-left {
+    flex-direction: column;
+    align-items: flex-start;
+    width: 70%;
+  }
+  
+  /* Rapprocher les éléments de droite */
+  .netflix-header-right {
+    gap: 5px;
+  }
+  
+  /* Ajuster la position de la recherche */
+  .netflix-search {
+    margin-right: 5px;
+  }
+  
+  /* Ajuster la taille du logo */
+  .netflix-logo {
+    margin-bottom: 5px;
+  }
+}
