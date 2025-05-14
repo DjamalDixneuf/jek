@@ -1,0 +1,316 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #0a0b0f; /* Gray-900 */
+  color: white;
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  width: 90%;
+  margin: 0 auto;
+}
+
+header {
+  background-color: #12141c; /* Gray-800 */
+  border: 1px solid #1a1d28;
+  padding: 16px;
+  position: relative;
+}
+
+h1 {
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.icon-container {
+  width: 35px;
+  height: 35px;
+  background-color: #000000;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  position: absolute;
+  top: 9px;
+  left: 100px;
+}
+
+@media (max-width: 767px) {
+  .icon-container {
+    left: 52px; /* Ajuster cette valeur selon vos besoins */
+  }
+}
+
+.icon-button {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.input {
+  padding: 8px;
+  width: 250px;
+  border-radius: 4px;
+  border: 1px solid #333;
+  background-color: #2d3748;
+  color: white;
+}
+
+#toggleDesktopMode {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background-color: #1a73e8;
+  color: white;
+  padding: 10px 15px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  z-index: 1000;
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #toggleDesktopMode {
+    display: block;
+  }
+}
+
+.desktop-mode {
+  min-width: 1024px;
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .card img {
+    width: 100%;
+    height: auto;
+  }
+
+  .card h3 {
+    font-size: 16px;
+  }
+
+  .card p {
+    font-size: 12px;
+  }
+}
+
+.card {
+  background-color: #2d3748;
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  transition: transform 0.3s;
+}
+
+.card:hover {
+  transform: scale(1.05);
+}
+
+.card img {
+  width: 180px; /* Width of the image */
+  height: 260px; /* Height of the image */
+  object-fit: cover; /* Ensures the image covers the space without distortion */
+  margin-bottom: 12px;
+  border-radius: 4px;
+}
+
+.card-content {
+  text-align: center;
+  width: 100%;
+}
+
+.card h3 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #ffffff; /* Ensures the title is visible */
+}
+
+.card p {
+  color: #d1d5db; /* Gray-400 */
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #1a73e8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s;
+}
+
+.iconL-button {
+  position: absolute;
+  width: 10%;
+  top: 60px; /* Ajuste la position verticale */
+  right: 10px; /* Ajuste la position horizontale */
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #1a73e8;
+  color: white;
+}
+
+.iconU-button {
+  position: absolute;
+  width: 10%;
+  top: 10px; /* Ajuste la position verticale */
+  right: 10px; /* Ajuste la position horizontale */
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  background-color: #1a73e8;
+  color: white;
+}
+
+button:hover {
+  background-color: #155bb5;
+}
+
+button:disabled {
+  background-color: #a0aec0;
+}
+
+.icon-svg {
+  width: 20px; /* Taille réduite de l'icône */
+  height: 20px;
+}
+
+.iconf-svg {
+  width: 60px; /* Taille réduite de l'icône */
+  height: 50px;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+  background-color: #2d3748;
+  margin: 10% auto;
+  padding: 20px;
+  border-radius: 8px;
+  width: 80%;
+  max-width: 800px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#videoPlayer {
+  width: 100%;
+  height: 450px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+#movieDetails {
+  color: #fff;
+}
+
+/* Nouvelles classes pour les miniatures cliquables */
+.movie-thumbnail {
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.movie-thumbnail:hover {
+  transform: scale(1.05);
+}
+
+/* Ajouts pour améliorer l'interface */
+.episode-selector {
+  width: 100%;
+  padding: 8px;
+  background-color: #1a1d28;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: white;
+  margin-bottom: 15px;
+}
+
+.movie-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.movie-detail-item {
+  margin-bottom: 10px;
+}
+
+.movie-detail-label {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.movie-detail-value {
+  color: white;
+  font-size: 1rem;
+}
+
+.movie-description {
+  margin-top: 15px;
+}
+
+.movie-description-label {
+  color: #aaa;
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.movie-description-text {
+  color: white;
+  line-height: 1.5;
+}
