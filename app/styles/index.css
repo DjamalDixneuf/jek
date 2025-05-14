@@ -132,10 +132,10 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 30px !important; /* Forcer la taille avec !important */
-  height: 30px !important; /* Forcer la taille avec !important */
-  max-width: 30px !important; /* Empêcher l'image de dépasser cette taille */
-  max-height: 30px !important; /* Empêcher l'image de dépasser cette taille */
+  width: 50px !important; /* Forcer la taille avec !important */
+  height: 50px !important; /* Forcer la taille avec !important */
+  max-width: 50px !important; /* Empêcher l'image de dépasser cette taille */
+  max-height: 50px !important; /* Empêcher l'image de dépasser cette taille */
   object-fit: contain !important; /* Conserver les proportions */
   position: relative;
   z-index: 2;
