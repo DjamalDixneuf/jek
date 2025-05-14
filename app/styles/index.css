@@ -88,24 +88,24 @@ body::after {
   position: relative;
 }
 
-/* Modifier le style du conteneur du logo pour qu'il soit plus grand que l'image */
-.icon-container {
+/* Styles spécifiques pour le logo de la page de connexion */
+.login-page .icon-container {
   width: 60px;
   height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
+  margin-left: calc(50% - 40px);
   background-color: #0a0b0f;
   border-radius: 50%;
   border: 2px solid rgba(26, 115, 232, 0.5);
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
   position: relative;
-  overflow: hidden; /* IMPORTANT pour que le logo ne dépasse pas */
-  margin-left: -0px;
+  overflow: hidden;
 }
 
-.icon-container::after {
+.login-page .icon-container::after {
   content: "";
   position: absolute;
   width: 100%;
@@ -131,16 +131,16 @@ body::after {
   }
 }
 
-.icon-svg,
-.iconf-svg {
-  width: 90px !important; /* Forcer la taille avec !important */
-  height: 90px !important; /* Forcer la taille avec !important */
-  max-width: 90px !important; /* Empêcher l'image de dépasser cette taille */
-  max-height: 90px !important; /* Empêcher l'image de dépasser cette taille */
-  object-fit: contain !important; /* Conserver les proportions */
+.login-page .icon-svg,
+.login-page .iconf-svg {
+  width: 30px !important;
+  height: 30px !important;
+  max-width: 30px !important;
+  max-height: 30px !important;
+  object-fit: contain !important;
   position: relative;
   z-index: 2;
-  margin-top: 12px;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
 }
 
 .title {
