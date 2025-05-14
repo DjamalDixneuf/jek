@@ -6,6 +6,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import Logo from "@/components/logo" // Correction de l'importation
+import "../styles/stylesA.css"
+import "../styles/mobile-nav.css"
 
 export default function RequestMoviePage() {
   const router = useRouter()
@@ -264,13 +266,13 @@ export default function RequestMoviePage() {
 
         <div className="netflix-header-right">
           <div className={`netflix-search ${searchActive ? "active" : ""}`}>
-            <button className="netflix-search-toggle" onClick={toggleSearch}>
+            <button className="netflix-search-toggle" onClick={toggleSearch} aria-label="Rechercher">
               <i className="fas fa-search">🔍</i>
             </button>
             {searchActive && <input type="text" placeholder="Titres, personnes, genres..." />}
           </div>
 
-          <button className="netflix-menu-toggle" onClick={toggleMenu}>
+          <button className="netflix-menu-toggle" onClick={toggleMenu} aria-label="Menu">
             <div className={`hamburger-icon ${menuOpen ? "open" : ""}`}>
               <span></span>
               <span></span>
@@ -322,7 +324,7 @@ export default function RequestMoviePage() {
       )}
 
       {/* Contenu principal */}
-      <main className="netflix-main" style={{ paddingTop: "80px" }}>
+      <main className="netflix-main" style={{ paddingTop: "120px" }}>
         <div
           className="netflix-card"
           style={{ backgroundColor: "#181818", padding: "30px", borderRadius: "8px", marginBottom: "30px" }}
