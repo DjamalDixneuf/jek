@@ -90,20 +90,20 @@ body::after {
 
 /* Modifier le style du conteneur du logo pour qu'il soit plus grand que l'image */
 .icon-container {
-  width: 60px; /* Conteneur réduit mais plus grand que l'image */
-  height: 60px; /* Conteneur réduit mais plus grand que l'image */
+  width: 60px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 20px;
-  margin-left: calc(50% - 40px); /* Déplace légèrement vers la gauche */
-  background-color: #0a0b0f; /* Fond noir */
-  border-radius: 50%; /* Rond */
-  border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
-  box-shadow: 0 0 15px rgba(26, 115, 232, 0.3); /* Lueur bleue */
+  background-color: #0a0b0f;
+  border-radius: 50%;
+  border: 2px solid rgba(26, 115, 232, 0.5);
+  box-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
   position: relative;
-  margin-left: -35px;
+  overflow: hidden; /* IMPORTANT pour que le logo ne dépasse pas */
 }
+
 
 .icon-container::after {
   content: "";
@@ -113,6 +113,7 @@ body::after {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(26, 115, 232, 0.2) 0%, transparent 70%);
   animation: pulse 2s infinite;
+  z-index: 1;
 }
 
 @keyframes pulse {
@@ -132,13 +133,13 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  position: relative;
+  width: 80%;  /* Le logo prend 80% du conteneur */
+  height: 80%;
+  object-fit: cover; /* Remplit bien la zone sans déformation */
+  border-radius: 50%; /* Pour que le logo soit rond aussi */
   z-index: 2;
-  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
 }
+
 
 .title {
   font-size: 2rem;
