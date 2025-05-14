@@ -1,11 +1,25 @@
+"use client"
+
+import { useState } from "react"
 import Image from "next/image"
+import FallbackLogo from "./fallback-logo"
 
-interface LogoProps {
-  className?: string
-  width?: number
-  height?: number
-}
+export default function Logo() {
+  const [error, setError] = useState(false)
 
-export default function Logo({ className = "icon-svg", width = 60, height = 50 }: LogoProps) {
-  return <Image src="/logo-inter.png" alt="Jekle Logo" width={width} height={height} className={className} priority />
+  if (error) {
+    return <FallbackLogo />
+  }
+
+  return (
+    <Image
+      src="/logo.png"
+      alt="Jekle Logo"
+      width={60}
+      height={60}
+      className="icon-svg"
+      onError={() => setError(true)}
+      priority
+    />
+  )
 }
