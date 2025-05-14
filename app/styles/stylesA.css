@@ -83,6 +83,7 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
+  position: relative;
 }
 
 /* Netflix-style search */
@@ -480,6 +481,7 @@ body {
   gap: 10px;
   padding: 10px 0;
   scrollbar-width: none; /* Firefox */
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
 }
 
 .netflix-row-content::-webkit-scrollbar {
@@ -779,6 +781,16 @@ body {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Animation pour le fade in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Responsive styles */
 @media (max-width: 1200px) {
   .netflix-featured-content {
@@ -807,6 +819,7 @@ body {
 
   .netflix-featured-content {
     width: 80%;
+    padding-top: 80px; /* Espace pour l'en-tête */
   }
 
   .netflix-featured-title {
@@ -828,46 +841,214 @@ body {
   .movie-details-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Ajustements pour les modals sur mobile */
+  .netflix-modal-content {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    border-radius: 0;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #videoPlayer {
+    height: 40vh !important;
+  }
 }
 
 @media (max-width: 576px) {
-  .netflix-featured {
-    height: 50vh;
+  /* Ajustements pour l'en-tête sur mobile */
+  .netflix-header {
+    padding: 12px 4%;
   }
 
-  .netflix-featured-content {
-    width: 100%;
+  .netflix-logo {
+    margin-right: 10px;
   }
 
-  .netflix-featured-title {
-    font-size: 1.5rem;
-  }
-
-  .netflix-featured-desc {
-    font-size: 0.9rem;
+  .netflix-logo .iconf-svg {
+    width: 30px;
+    height: 30px;
   }
 
   .netflix-nav {
     display: none;
   }
 
-  .netflix-search.active input {
-    width: 120px;
+  /* Ajustements pour le contenu en vedette sur mobile */
+  .netflix-featured {
+    height: 70vh;
+    min-height: 400px;
+  }
+
+  .netflix-featured-content {
+    width: 100%;
+    padding: 0 4%;
+    padding-top: 60px;
+    padding-bottom: 20px;
+    justify-content: flex-end;
+  }
+
+  .netflix-featured-title {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+  }
+
+  .netflix-featured-meta {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .netflix-featured-desc {
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    -webkit-line-clamp: 3;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .netflix-featured-buttons {
+    width: 100%;
+  }
+
+  .netflix-play-button,
+  .netflix-more-button {
+    padding: 8px 15px;
+    font-size: 0.9rem;
+  }
+
+  /* Ajustements pour les rangées de films sur mobile */
+  .netflix-row-title {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
   }
 
   .netflix-item {
-    width: 150px;
+    width: 120px;
   }
 
   .netflix-item-img {
-    height: 225px;
+    height: 180px;
   }
 
+  /* Désactiver l'effet de zoom sur mobile pour éviter les problèmes de débordement */
+  .netflix-item:hover {
+    transform: scale(1.1);
+  }
+
+  /* Rendre les informations des films toujours visibles sur mobile */
+  .netflix-item-info {
+    opacity: 1;
+    padding: 5px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 50%, transparent 100%);
+  }
+
+  .netflix-item h3 {
+    font-size: 12px;
+    margin-bottom: 2px;
+  }
+
+  .netflix-item-meta {
+    margin-bottom: 2px;
+  }
+
+  .netflix-item p {
+    display: none; /* Masquer la description sur mobile */
+  }
+
+  /* Ajustements pour les cartes sur mobile */
   .netflix-card {
     flex-direction: column;
   }
 
   .netflix-card-img {
     flex: 0 0 auto;
+  }
+
+  .netflix-card-content {
+    padding: 15px;
+  }
+
+  .netflix-card-title {
+    font-size: 1.2rem;
+  }
+
+  .netflix-card-buttons {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Ajustements pour le menu déroulant sur mobile */
+  .netflix-dropdown-menu {
+    width: 180px;
+    right: 10px;
+  }
+
+  /* Ajustements pour le modal de profil sur mobile */
+  .netflix-profile-modal-content {
+    width: 95%;
+    padding: 20px;
+  }
+
+  /* Ajustements pour la recherche sur mobile */
+  .netflix-search.active input {
+    width: 120px;
+  }
+
+  /* Ajustements pour le modal vidéo sur mobile */
+  .netflix-episode-selector {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .netflix-modal-details {
+    padding: 10px;
+  }
+
+  .movie-detail-label,
+  .movie-detail-value {
+    font-size: 0.8rem;
+  }
+
+  .movie-description-label {
+    font-size: 0.9rem;
+  }
+
+  .movie-description-text {
+    font-size: 0.8rem;
+  }
+}
+
+/* Ajustements spécifiques pour les très petits écrans */
+@media (max-width: 375px) {
+  .netflix-item {
+    width: 100px;
+  }
+
+  .netflix-item-img {
+    height: 150px;
+  }
+
+  .netflix-featured-title {
+    font-size: 1.5rem;
+  }
+
+  .netflix-featured-buttons {
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .netflix-search.active input {
+    width: 100px;
+  }
+
+  .netflix-header-right {
+    gap: 10px;
   }
 }
