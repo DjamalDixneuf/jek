@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { Logo } from "@/components/logo"
+import Logo from "@/components/logo" // Correction de l'importation
 
 export default function RequestMoviePage() {
   const router = useRouter()
