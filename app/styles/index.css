@@ -133,13 +133,12 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 80%;  /* Le logo prend 80% du conteneur */
-  height: 80%;
-  object-fit: cover; /* Remplit bien la zone sans déformation */
-  border-radius: 50%; /* Pour que le logo soit rond aussi */
+  width: 60%;
+  height: 60%;
+  object-fit: cover;
+  border-radius: 50%;
   z-index: 2;
 }
-
 
 .title {
   font-size: 2rem;
