@@ -155,13 +155,7 @@ export default function Home() {
       <div className="card">
         <div className="card-header">
           <div className="icon-container">
-            <Image
-              src="/placeholder.svg?height=50&width=60"
-              alt="Film Icon"
-              width={60}
-              height={50}
-              className="icon-svg"
-            />
+            <Image src="/logo-inter.png" alt="Jekle Logo" width={60} height={50} className="icon-svg" />
           </div>
           <h2 className="title">Jekle</h2>
           <p className="description">Votre plateforme de streaming préférée</p>
