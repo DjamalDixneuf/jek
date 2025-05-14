@@ -923,8 +923,39 @@ body {
     height: 30px;
   }
 
+  /* Réduire l'espace entre les éléments dans le header-right */
+  .netflix-header-right {
+    gap: 5px;
+  }
+
+  /* Ajuster la position de la recherche sur mobile */
+  .netflix-search {
+    margin-right: 5px;
+  }
+
   .netflix-nav {
-    display: none;
+    display: flex; /* Afficher la navigation sur mobile */
+    overflow-x: auto;
+    white-space: nowrap;
+    width: 100%;
+    padding-bottom: 5px;
+    scrollbar-width: none; /* Firefox */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .netflix-nav::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+
+  .netflix-nav ul {
+    display: flex;
+    gap: 15px;
+    padding-right: 10px;
+  }
+
+  .netflix-nav li {
+    font-size: 12px;
+    flex-shrink: 0;
   }
 
   /* Ajustements pour le contenu en vedette sur mobile */
