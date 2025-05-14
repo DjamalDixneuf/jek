@@ -102,7 +102,7 @@ body::after {
   border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3); /* Lueur bleue */
   position: relative;
-  margin-left: -165px;
+  margin-left: -65px;
 }
 
 .icon-container::after {
@@ -138,7 +138,7 @@ body::after {
   position: relative;
   z-index: 2;
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
-  margin-left: -165px; /* Déplace l'icône vers la gauche */
+  margin-left: -5px; /* Déplace l'icône vers la gauche */
 }
 
 .title {
