@@ -90,8 +90,8 @@ body::after {
 
 /* Modifier le style du conteneur du logo pour qu'il soit plus petit que l'image */
 .icon-container {
-  width: 60px; /* Conteneur plus petit */
-  height: 60px; /* Conteneur plus petit */
+  width: 90px; /* Conteneur plus petit */
+  height: 90px; /* Conteneur plus petit */
   display: flex;
   align-items: center;
   justify-content: center;
