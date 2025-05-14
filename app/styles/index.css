@@ -133,8 +133,8 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 60%;
-  height: 60%;
+  width: 30%;
+  height: 30%;
   object-fit: cover;
   border-radius: 50%;
   z-index: 2;
