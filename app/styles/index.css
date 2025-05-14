@@ -102,7 +102,7 @@ body::after {
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
   position: relative;
   overflow: hidden; /* IMPORTANT pour que le logo ne dépasse pas */
-  margin-left: 119px;
+  margin-left: 133px;
 }
 
 .icon-container::after {
