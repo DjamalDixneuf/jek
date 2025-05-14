@@ -274,13 +274,7 @@ export default function UserPage() {
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-4">
             <div className="icon-container">
-              <Image
-                src="/placeholder.svg?height=50&width=60"
-                alt="Film Icon"
-                width={60}
-                height={50}
-                className="iconf-svg"
-              />
+              <Image src="/logo-inter.png" alt="Jekle Logo" width={60} height={50} className="iconf-svg" />
             </div>
             <h1 className="text-2xl font-bold">Jekle Entertainment</h1>
           </div>
