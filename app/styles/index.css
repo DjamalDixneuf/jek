@@ -88,15 +88,20 @@ body::after {
   position: relative;
 }
 
+/* Modifier le style du conteneur du logo pour le centrer parfaitement */
 .icon-container {
-  width: 80px;
-  height: 80px;
+  width: 100px;
+  height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 15px;
-  background: transparent;
+  margin: 0 auto 20px;
+  background-color: #0a0b0f; /* Fond noir */
+  border-radius: 50%; /* Rond */
+  border: 2px solid rgba(26, 115, 232, 0.5); /* Bordure bleue */
+  box-shadow: 0 0 15px rgba(26, 115, 232, 0.3); /* Lueur bleue */
   position: relative;
+  overflow: hidden;
 }
 
 .icon-container::after {
@@ -109,9 +114,24 @@ body::after {
   animation: pulse 2s infinite;
 }
 
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.5;
+  }
+}
+
 .icon-svg,
 .iconf-svg {
-  width: 70px;
+  width: 60px;
   height: 60px;
   object-fit: contain;
   position: relative;
