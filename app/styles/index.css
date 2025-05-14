@@ -104,7 +104,6 @@ body::after {
   overflow: hidden; /* IMPORTANT pour que le logo ne dépasse pas */
 }
 
-
 .icon-container::after {
   content: "";
   position: absolute;
@@ -133,10 +132,12 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 30%;
-  height: 30%;
-  object-fit: cover;
-  border-radius: 50%;
+  width: 30px !important; /* Forcer la taille avec !important */
+  height: 30px !important; /* Forcer la taille avec !important */
+  max-width: 30px !important; /* Empêcher l'image de dépasser cette taille */
+  max-height: 30px !important; /* Empêcher l'image de dépasser cette taille */
+  object-fit: contain !important; /* Conserver les proportions */
+  position: relative;
   z-index: 2;
 }
 
