@@ -4,8 +4,8 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import "./styles/index.css"
+import Logo from "../components/logo"
 
 export default function Home() {
   const router = useRouter()
@@ -155,7 +155,7 @@ export default function Home() {
       <div className="card">
         <div className="card-header">
           <div className="icon-container">
-            <Image src="/logo-inter.png" alt="Jekle Logo" width={60} height={50} className="icon-svg" />
+            <Logo />
           </div>
           <h2 className="title">Jekle</h2>
           <p className="description">Votre plateforme de streaming préférée</p>
