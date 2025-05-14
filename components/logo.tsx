@@ -2,7 +2,6 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import FallbackLogo from "./fallback-logo"
 
 export default function Logo() {
   const [error, setError] = useState(false)
