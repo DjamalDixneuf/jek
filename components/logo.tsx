@@ -2,7 +2,6 @@
 
 import Image from "next/image"
 import { useState } from "react"
-import FallbackLogo from "./fallback-logo"
 
 interface LogoProps {
   className?: string
