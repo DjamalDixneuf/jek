@@ -102,7 +102,7 @@ body::after {
   box-shadow: 0 0 15px rgba(26, 115, 232, 0.3);
   position: relative;
   overflow: hidden; /* IMPORTANT pour que le logo ne dépasse pas */
-  margin-left: 5px;
+  margin-left: 90px;
 }
 
 .icon-container::after {
@@ -140,7 +140,7 @@ body::after {
   object-fit: contain !important; /* Conserver les proportions */
   position: relative;
   z-index: 2;
-  margin-top: 90px;
+  margin-top: 12px;
 }
 
 .title {
