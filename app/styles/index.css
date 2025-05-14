@@ -139,6 +139,7 @@ body::after {
   object-fit: contain !important; /* Conserver les proportions */
   position: relative;
   z-index: 2;
+  margin-top: 15px;
 }
 
 .title {
