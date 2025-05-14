@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import "./styles/index.css"
 import Logo from "../components/logo"
@@ -24,6 +24,68 @@ export default function Home() {
   })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const particlesRef = useRef<HTMLDivElement>(null)
+
+  // Créer des particules flottantes
+  useEffect(() => {
+    if (!particlesRef.current) return
+
+    const particlesContainer = particlesRef.current
+    const particleCount = 20
+
+    // Supprimer les particules existantes
+    while (particlesContainer.firstChild) {
+      particlesContainer.removeChild(particlesContainer.firstChild)
+    }
+
+    // Créer de nouvelles particules
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement("div")
+      particle.classList.add("particle")
+
+      // Position aléatoire
+      particle.style.left = `${Math.random() * 100}%`
+      particle.style.top = `${Math.random() * 100}%`
+
+      // Taille aléatoire
+      const size = Math.random() * 5 + 2
+      particle.style.width = `${size}px`
+      particle.style.height = `${size}px`
+
+      // Opacité aléatoire
+      particle.style.opacity = `${Math.random() * 0.5 + 0.1}`
+
+      // Animation aléatoire
+      const duration = Math.random() * 20 + 10
+      const delay = Math.random() * 5
+
+      particle.style.animation = `float ${duration}s ease-in-out ${delay}s infinite`
+      particle.style.animationDirection = Math.random() > 0.5 ? "alternate" : "alternate-reverse"
+
+      particlesContainer.appendChild(particle)
+    }
+
+    // Ajouter une animation CSS pour les particules
+    const style = document.createElement("style")
+    style.textContent = `
+      @keyframes float {
+        0% {
+          transform: translateY(0) translateX(0);
+        }
+        50% {
+          transform: translateY(-${Math.random() * 100 + 50}px) translateX(${Math.random() * 50 - 25}px);
+        }
+        100% {
+          transform: translateY(0) translateX(0);
+        }
+      }
+    `
+    document.head.appendChild(style)
+
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
 
   const showTab = (tabId: string) => {
     setActiveTab(tabId)
@@ -152,6 +214,7 @@ export default function Home() {
 
   return (
     <div className="container">
+      <div className="particles" ref={particlesRef}></div>
       <div className="card">
         <div className="card-header">
           <div className="icon-container">
