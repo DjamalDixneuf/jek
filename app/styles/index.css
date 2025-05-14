@@ -132,8 +132,8 @@ body::after {
 
 .icon-svg,
 .iconf-svg {
-  width: 70px; /* Logo plus grand que le conteneur */
-  height: 70px; /* Logo plus grand que le conteneur */
+  width: 30px; /* Logo plus grand que le conteneur */
+  height: 30px; /* Logo plus grand que le conteneur */
   object-fit: contain;
   position: relative;
   z-index: 2;
