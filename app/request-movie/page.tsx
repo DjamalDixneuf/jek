@@ -37,11 +37,30 @@ export default function RequestMoviePage() {
       return
     }
 
-    // Récupérer le nom d'utilisateur s'il existe
-    const storedName = localStorage.getItem("userName")
-    if (storedName) {
-      setUserName(storedName)
+    // Récupérer les informations utilisateur
+    const fetchUserInfo = async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/check-auth`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`)
+        }
+
+        const userData = await response.json()
+
+        if (userData.username) {
+          setUserName(userData.username)
+        }
+      } catch (error) {
+        console.error("Erreur lors du chargement des informations utilisateur:", error)
+      }
     }
+
+    fetchUserInfo()
 
     // Gérer le défilement pour l'en-tête
     const handleScroll = () => {
@@ -66,38 +85,21 @@ export default function RequestMoviePage() {
   const loadRequests = async () => {
     setIsLoading((prev) => ({ ...prev, requests: true }))
     try {
-      // Simuler le chargement des demandes depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockRequests = [
-        {
-          id: 1,
-          title: "The Mandalorian",
-          imdbLink: "https://www.imdb.com/title/tt8111088/",
-          comment: "J'aimerais beaucoup voir cette série Star Wars",
-          status: "pending",
-          createdAt: "2023-05-15",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          title: "Dune: Part Two",
-          imdbLink: "https://www.imdb.com/title/tt15239678/",
-          comment: "La suite de Dune qui vient de sortir",
-          status: "approved",
-          createdAt: "2023-06-20",
-        },
-        {
-          id: 3,
-          title: "Oppenheimer",
-          imdbLink: "https://www.imdb.com/title/tt15398776/",
-          comment: "Le film de Christopher Nolan",
-          status: "pending",
-          createdAt: "2023-07-10",
-        },
-      ]
+      })
 
-      setRequests(mockRequests)
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setRequests(data)
     } catch (error) {
       console.error("Erreur lors du chargement des demandes:", error)
     } finally {
@@ -108,62 +110,21 @@ export default function RequestMoviePage() {
   const loadAvailableMovies = async () => {
     setIsLoading((prev) => ({ ...prev, movies: true }))
     try {
-      // Simuler le chargement des films disponibles depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockMovies = [
-        {
-          id: 1,
-          title: "Inception",
-          genre: "Science Fiction, Action",
-          duration: "2h 28min",
-          releaseYear: "2010",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          title: "The Dark Knight",
-          genre: "Action, Crime, Drame",
-          duration: "2h 32min",
-          releaseYear: "2008",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-        },
-        {
-          id: 3,
-          title: "Interstellar",
-          genre: "Aventure, Drame, Science Fiction",
-          duration: "2h 49min",
-          releaseYear: "2014",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-        },
-        {
-          id: 4,
-          title: "The Matrix",
-          genre: "Science Fiction, Action",
-          duration: "2h 16min",
-          releaseYear: "1999",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-        },
-        {
-          id: 5,
-          title: "Pulp Fiction",
-          genre: "Crime, Drame",
-          duration: "2h 34min",
-          releaseYear: "1994",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-        },
-        {
-          id: 6,
-          title: "The Shawshank Redemption",
-          genre: "Drame",
-          duration: "2h 22min",
-          releaseYear: "1994",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-        },
-      ]
+      })
 
-      setAvailableMovies(mockMovies)
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setAvailableMovies(data.movies || [])
     } catch (error) {
       console.error("Erreur lors du chargement des films disponibles:", error)
     } finally {
@@ -190,19 +151,22 @@ export default function RequestMoviePage() {
         throw new Error("Veuillez fournir un lien IMDB valide")
       }
 
-      // Simuler l'envoi de la demande à une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Créer une nouvelle demande fictive
-      const newRequest = {
-        id: Date.now(),
-        ...formData,
-        status: "pending",
-        createdAt: new Date().toISOString().split("T")[0],
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur lors de l'enregistrement de la demande")
       }
-
-      // Ajouter la nouvelle demande à la liste
-      setRequests((prev) => [newRequest, ...prev])
 
       // Réinitialiser le formulaire
       setFormData({
@@ -210,6 +174,9 @@ export default function RequestMoviePage() {
         imdbLink: "",
         comment: "",
       })
+
+      // Recharger les demandes pour afficher la nouvelle
+      loadRequests()
 
       alert("Votre demande a été enregistrée avec succès!")
     } catch (error: any) {
