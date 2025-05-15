@@ -118,29 +118,41 @@ export default function Home() {
     })
   }
 
+  // Remplacer les fonctions d'authentification simulées par des appels API réels
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
-      // Simuler une connexion
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(loginData),
+      })
 
-      // Redirection basée sur le nom d'utilisateur
-      if (loginData.username === "djamalax19" && loginData.password === "Tiger19667") {
-        localStorage.setItem("token", "admin-token")
-        localStorage.setItem("role", "admin")
-        router.push("/admin-dashboard")
-      } else if (loginData.username && loginData.password) {
-        localStorage.setItem("token", "user-token")
-        localStorage.setItem("role", "user")
-        router.push("/user-page")
-      } else {
-        setError("Nom d'utilisateur ou mot de passe incorrect")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur de connexion")
       }
-    } catch (error) {
-      setError("Erreur de connexion. Veuillez réessayer.")
+
+      const data = await response.json()
+
+      // Stocker le token et le rôle
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("refreshToken", data.refreshToken)
+      localStorage.setItem("role", data.role)
+
+      // Rediriger en fonction du rôle
+      if (data.role === "admin") {
+        router.push("/admin-dashboard")
+      } else {
+        router.push("/user-page")
+      }
+    } catch (error: any) {
+      setError(error.message || "Erreur de connexion. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -157,8 +169,18 @@ export default function Home() {
         throw new Error("Le mot de passe doit contenir au moins 6 caractères")
       }
 
-      // Simuler l'envoi d'un code de vérification
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur d'inscription")
+      }
 
       // Stocker temporairement les données d'inscription
       localStorage.setItem("verificationUsername", signupData.username)
@@ -178,19 +200,32 @@ export default function Home() {
     setError("")
 
     try {
-      // Simuler la vérification du code
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Vérifier le code (pour la démo, n'importe quel code fonctionne)
-      if (verificationData.code) {
-        // Compte créé avec succès
-        localStorage.removeItem("verificationUsername")
-        showTab("login")
-        // Afficher un message de succès
-        alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.")
-      } else {
-        throw new Error("Veuillez entrer le code de vérification")
+      const username = localStorage.getItem("verificationUsername")
+      if (!username) {
+        throw new Error("Session expirée, veuillez vous inscrire à nouveau")
       }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/verify-signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          code: verificationData.code,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur de vérification")
+      }
+
+      // Compte créé avec succès
+      localStorage.removeItem("verificationUsername")
+      showTab("login")
+      // Afficher un message de succès
+      alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.")
     } catch (error: any) {
       setError(error.message || "Erreur de vérification. Veuillez réessayer.")
     } finally {
