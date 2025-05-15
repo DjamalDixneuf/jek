@@ -39,6 +39,7 @@ const transporter = nodemailer.createTransport({
 
 // Database connection
 let cachedDb = null
+// Remplacer la fonction connectToDatabase() pour assurer une connexion fiable
 async function connectToDatabase() {
   if (cachedDb) {
     return cachedDb
@@ -48,7 +49,7 @@ async function connectToDatabase() {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     })
-    const db = client.db("jekledb")
+    const db = client.db("jekledb") // Assurez-vous que c'est le nom correct de votre base de données
     cachedDb = db
     console.log("MongoDB connection successful")
     return db
@@ -174,12 +175,13 @@ app.post("/verify-signup", async (req, res) => {
   }
 })
 
+// Remplacer la fonction de login pour utiliser la vraie base de données
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body
     const db = await connectToDatabase()
 
-    // Admin login
+    // Admin login - vous pouvez garder ceci ou le remplacer par un vrai compte admin dans la base de données
     if (username === "djamalax19" && password === "Tiger19667") {
       const token = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "1h" })
       const refreshToken = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "7d" })
@@ -200,9 +202,14 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" })
     }
 
-    const token = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET, { expiresIn: "1h" })
-
-    const refreshToken = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET, { expiresIn: "7d" })
+    const token = jwt.sign({ username: user.username, role: user.role, userId: user._id.toString() }, JWT_SECRET, {
+      expiresIn: "1h",
+    })
+    const refreshToken = jwt.sign(
+      { username: user.username, role: user.role, userId: user._id.toString() },
+      JWT_SECRET,
+      { expiresIn: "7d" },
+    )
 
     res.json({ token, refreshToken, role: user.role })
   } catch (error) {
@@ -212,10 +219,40 @@ app.post("/login", async (req, res) => {
 })
 
 // Movie Routes
+// Améliorer la route pour récupérer les films avec pagination et filtrage
 app.get("/movies", authenticateToken, async (req, res) => {
   try {
+    const { genre, type, search, page = 1, limit = 20 } = req.query
+    const skip = (page - 1) * limit
+
     const db = await connectToDatabase()
-    const movies = await db.collection("movies").find({}).toArray()
+
+    // Construire le filtre de recherche
+    const filter = {}
+
+    if (genre) {
+      filter.genre = { $in: [genre] }
+    }
+
+    if (type) {
+      filter.type = type
+    }
+
+    if (search) {
+      filter.$or = [{ title: { $regex: search, $options: "i" } }, { description: { $regex: search, $options: "i" } }]
+    }
+
+    // Compter le nombre total de films correspondant au filtre
+    const total = await db.collection("movies").countDocuments(filter)
+
+    // Récupérer les films avec pagination
+    const movies = await db
+      .collection("movies")
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .skip(Number.parseInt(skip))
+      .limit(Number.parseInt(limit))
+      .toArray()
 
     // Transform Google Drive URLs for all movies
     const transformedMovies = movies.map((movie) => {
@@ -230,10 +267,90 @@ app.get("/movies", authenticateToken, async (req, res) => {
       return movie
     })
 
-    res.json(transformedMovies)
+    res.json({
+      movies: transformedMovies,
+      pagination: {
+        total,
+        page: Number.parseInt(page),
+        limit: Number.parseInt(limit),
+        pages: Math.ceil(total / limit),
+      },
+    })
   } catch (error) {
     console.error("Error fetching movies:", error)
     res.status(500).json({ message: "Error fetching movies" })
+  }
+})
+
+// Ajouter une route pour obtenir les statistiques pour le tableau de bord admin
+app.get("/admin/stats", authenticateToken, isAdmin, async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+
+    // Obtenir le nombre total d'utilisateurs
+    const userCount = await db.collection("users").countDocuments()
+
+    // Obtenir le nombre total de films et séries
+    const movieCount = await db.collection("movies").countDocuments()
+    const filmCount = await db.collection("movies").countDocuments({ type: "film" })
+    const seriesCount = await db.collection("movies").countDocuments({ type: "série" })
+
+    // Obtenir le nombre de demandes en attente
+    const pendingRequestCount = await db.collection("movieRequests").countDocuments({ status: "pending" })
+
+    // Obtenir les utilisateurs récemment inscrits (7 derniers jours)
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const newUserCount = await db.collection("users").countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    })
+
+    res.json({
+      users: {
+        total: userCount,
+        new: newUserCount,
+      },
+      content: {
+        total: movieCount,
+        films: filmCount,
+        series: seriesCount,
+      },
+      requests: {
+        pending: pendingRequestCount,
+      },
+    })
+  } catch (error) {
+    console.error("Error fetching admin stats:", error)
+    res.status(500).json({ message: "Error fetching admin statistics" })
+  }
+})
+
+// Ajouter une route pour obtenir un film spécifique par ID
+app.get("/movies/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params
+    const db = await connectToDatabase()
+
+    const movie = await db.collection("movies").findOne({ _id: new ObjectId(id) })
+
+    if (!movie) {
+      return res.status(404).json({ message: "Movie not found" })
+    }
+
+    // Transform Google Drive URL if needed
+    if (movie.type === "film" && movie.videoUrl) {
+      movie.videoUrl = getEmbedUrl(movie.videoUrl)
+    } else if (movie.type === "série" && movie.episodes) {
+      movie.episodes = movie.episodes.map((episode) => ({
+        ...episode,
+        url: getEmbedUrl(episode.url),
+      }))
+    }
+
+    res.json(movie)
+  } catch (error) {
+    console.error("Error fetching movie:", error)
+    res.status(500).json({ message: "Error fetching movie" })
   }
 })
 
