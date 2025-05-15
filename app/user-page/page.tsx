@@ -757,27 +757,6 @@ export default function UserPage() {
             allow="autoplay; encrypted-media"
             sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
             title="Lecteur vidéo"
-              value={selectedEpisode}
-              onChange={handleEpisodeChange}
-              aria-label="Sélectionner un épisode"
-            >
-              {selectedMovie.episodes.map((_, index: number) => (
-                <option key={index} value={index}>
-                  Épisode {index + 1}
-                </option>
-              ))}
-            </select>
-          )}
-          <iframe
-            id="videoPlayer"
-            width="100%"
-            height="500"
-            src=""
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; encrypted-media"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            title="Lecteur vidéo"
           ></iframe>
           <div id="movieDetails" className="netflix-modal-details"></div>
         </div>
