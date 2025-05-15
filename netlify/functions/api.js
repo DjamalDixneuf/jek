@@ -574,11 +574,71 @@ app.post("/refresh-token", async (req, res) => {
 })
 
 // Auth check route
-app.get("/check-auth", authenticateToken, (req, res) => {
-  res.json({
-    username: req.user.username,
-    role: req.user.role,
-  })
+app.get("/check-auth", authenticateToken, async (req, res) => {
+  try {
+    const db = await connectToDatabase()
+    const user = await db
+      .collection("users")
+      .findOne({ _id: new ObjectId(req.user.userId) }, { projection: { password: 0 } })
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    res.json({
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    })
+  } catch (error) {
+    console.error("Error fetching user info:", error)
+    res.status(500).json({ message: "Error fetching user info" })
+  }
+})
+
+// Route pour mettre à jour le profil utilisateur
+app.post("/update-profile", authenticateToken, async (req, res) => {
+  try {
+    const { username } = req.body
+    const userId = req.user.userId
+
+    if (!username) {
+      return res.status(400).json({ message: "Username is required" })
+    }
+
+    const db = await connectToDatabase()
+
+    // Vérifier si le nom d'utilisateur est déjà pris par un autre utilisateur
+    const existingUser = await db.collection("users").findOne({
+      username,
+      _id: { $ne: new ObjectId(userId) },
+    })
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Ce nom d'utilisateur est déjà pris" })
+    }
+
+    // Mettre à jour le nom d'utilisateur
+    const result = await db.collection("users").updateOne(
+      { _id: new ObjectId(userId) },
+      {
+        $set: {
+          username,
+          updatedAt: new Date(),
+        },
+      },
+    )
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" })
+    }
+
+    res.json({ message: "Profil mis à jour avec succès", username })
+  } catch (error) {
+    console.error("Error updating profile:", error)
+    res.status(500).json({ message: "Erreur lors de la mise à jour du profil" })
+  }
 })
 
 // Serverless handler
