@@ -74,40 +74,28 @@ export default function AdminDashboardPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [router])
 
+  // Remplacer les fonctions de chargement de données simulées par des appels API réels
   const loadUsers = async () => {
     setIsLoading(true)
     try {
-      // Simuler le chargement des utilisateurs depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockUsers = [
-        {
-          id: 1,
-          username: "user1",
-          email: "user1@example.com",
-          isBanned: false,
-          createdAt: "2023-01-15",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          username: "user2",
-          email: "user2@example.com",
-          isBanned: true,
-          createdAt: "2023-02-20",
-        },
-        {
-          id: 3,
-          username: "user3",
-          email: "user3@example.com",
-          isBanned: false,
-          createdAt: "2023-03-10",
-        },
-      ]
+      })
 
-      setUsers(mockUsers)
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setUsers(data)
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs:", error)
+      alert("Impossible de charger les utilisateurs. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -116,49 +104,24 @@ export default function AdminDashboardPage() {
   const loadMovies = async () => {
     setIsLoading(true)
     try {
-      // Simuler le chargement des films depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockMovies = [
-        {
-          id: 1,
-          title: "Inception",
-          type: "film",
-          duration: "2h 28min",
-          genre: ["Science Fiction", "Action"],
-          releaseYear: "2010",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          episodes: [],
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          title: "Breaking Bad",
-          type: "série",
-          duration: "5 saisons",
-          genre: ["Drame", "Crime"],
-          releaseYear: "2008",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          episodes: [
-            { title: "Épisode 1", description: "Le début de l'histoire de Walter White" },
-            { title: "Épisode 2", description: "Walter et Jesse commencent leur partenariat" },
-          ],
-        },
-        {
-          id: 3,
-          title: "The Dark Knight",
-          type: "film",
-          duration: "2h 32min",
-          genre: ["Action", "Drame", "Thriller"],
-          releaseYear: "2008",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          episodes: [],
-        },
-      ]
+      })
 
-      setMovies(mockMovies)
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setMovies(data)
     } catch (error) {
       console.error("Erreur lors du chargement des films:", error)
+      alert("Impossible de charger les films et séries. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -167,34 +130,24 @@ export default function AdminDashboardPage() {
   const loadRequests = async () => {
     setIsLoading(true)
     try {
-      // Simuler le chargement des demandes depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockRequests = [
-        {
-          id: 1,
-          title: "The Mandalorian",
-          imdbLink: "https://www.imdb.com/title/tt8111088/",
-          comment: "J'aimerais beaucoup voir cette série Star Wars",
-          userId: "user1",
-          status: "pending",
-          createdAt: "2023-05-15",
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          title: "Dune: Part Two",
-          imdbLink: "https://www.imdb.com/title/tt15239678/",
-          comment: "La suite de Dune qui vient de sortir",
-          userId: "user2",
-          status: "approved",
-          createdAt: "2023-06-20",
-        },
-      ]
+      })
 
-      setRequests(mockRequests)
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      setRequests(data)
     } catch (error) {
       console.error("Erreur lors du chargement des demandes:", error)
+      alert("Impossible de charger les demandes. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -265,6 +218,7 @@ export default function AdminDashboardPage() {
     })
   }
 
+  // Remplacer la fonction d'ajout de film par un appel API réel
   const handleAddMovie = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -288,16 +242,32 @@ export default function AdminDashboardPage() {
         throw new Error("Veuillez ajouter au moins un épisode")
       }
 
-      // Simuler l'ajout du film à une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Créer un nouveau film fictif
-      const newMovie = {
-        id: Date.now(),
+      // Préparer les données du film
+      const movieData = {
         ...movieFormData,
         genre: selectedGenres,
         episodes: movieFormData.type === "série" ? episodes : [],
       }
+
+      // Envoyer la requête à l'API
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(movieData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || "Erreur lors de l'ajout du film/série")
+      }
+
+      const newMovie = await response.json()
 
       // Ajouter le nouveau film à la liste
       setMovies((prev) => [newMovie, ...prev])
@@ -325,15 +295,27 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleDeleteMovie = async (id: number) => {
+  // Remplacer la fonction de suppression de film par un appel API réel
+  const handleDeleteMovie = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce film/série ?")) {
       setIsLoading(true)
       try {
-        // Simuler la suppression du film d'une API
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const token = localStorage.getItem("token")
+        if (!token) throw new Error("No authentication token")
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error("Erreur lors de la suppression")
+        }
 
         // Supprimer le film de la liste
-        setMovies((prev) => prev.filter((movie) => movie.id !== id))
+        setMovies((prev) => prev.filter((movie) => movie._id !== id))
 
         alert("Film/série supprimé avec succès!")
       } catch (error) {
@@ -344,14 +326,31 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleToggleBanUser = async (id: number, ban: boolean) => {
+  // Remplacer la fonction de bannissement d'utilisateur par un appel API réel
+  const handleToggleBanUser = async (id: string, ban: boolean) => {
     setIsLoading(true)
     try {
-      // Simuler la mise à jour du statut de l'utilisateur dans une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/admin/users/${id}/ban`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ ban }),
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la mise à jour")
+      }
 
       // Mettre à jour le statut de l'utilisateur dans la liste
-      setUsers((prev) => prev.map((user) => (user.id === id ? { ...user, isBanned: ban } : user)))
+      setUsers((prev) => prev.map((user) => (user._id === id ? { ...user, isBanned: ban } : user)))
 
       alert(`Utilisateur ${ban ? "banni" : "débanni"} avec succès!`)
     } catch (error) {
@@ -361,15 +360,30 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleDeleteUser = async (id: number) => {
+  // Remplacer la fonction de suppression d'utilisateur par un appel API réel
+  const handleDeleteUser = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
       setIsLoading(true)
       try {
-        // Simuler la suppression de l'utilisateur d'une API
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        const token = localStorage.getItem("token")
+        if (!token) throw new Error("No authentication token")
+
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/admin/users/${id}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        )
+
+        if (!response.ok) {
+          throw new Error("Erreur lors de la suppression")
+        }
 
         // Supprimer l'utilisateur de la liste
-        setUsers((prev) => prev.filter((user) => user.id !== id))
+        setUsers((prev) => prev.filter((user) => user._id !== id))
 
         alert("Utilisateur supprimé avec succès!")
       } catch (error) {
@@ -380,14 +394,29 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleApproveRequest = async (id: number) => {
+  // Remplacer les fonctions de gestion des demandes par des appels API réels
+  const handleApproveRequest = async (id: string) => {
     setIsLoading(true)
     try {
-      // Simuler l'approbation de la demande dans une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests/${id}/approve`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de l'approbation")
+      }
 
       // Mettre à jour le statut de la demande dans la liste
-      setRequests((prev) => prev.map((request) => (request.id === id ? { ...request, status: "approved" } : request)))
+      setRequests((prev) => prev.map((request) => (request._id === id ? { ...request, status: "approved" } : request)))
 
       alert("Demande approuvée avec succès!")
     } catch (error) {
@@ -397,14 +426,30 @@ export default function AdminDashboardPage() {
     }
   }
 
-  const handleRejectRequest = async (id: number) => {
+  const handleRejectRequest = async (id: string) => {
     setIsLoading(true)
     try {
-      // Simuler le rejet de la demande dans une API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests/${id}/reject`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ reason: "Rejeté par l'administrateur" }),
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error("Erreur lors du rejet")
+      }
 
       // Mettre à jour le statut de la demande dans la liste
-      setRequests((prev) => prev.map((request) => (request.id === id ? { ...request, status: "rejected" } : request)))
+      setRequests((prev) => prev.map((request) => (request._id === id ? { ...request, status: "rejected" } : request)))
 
       alert("Demande rejetée avec succès!")
     } catch (error) {
