@@ -24,40 +24,12 @@ const EMAIL_USER = process.env.EMAIL_USER
 const EMAIL_PASS = process.env.EMAIL_PASS
 
 // Validate environment variables
-if (!MONGODB_URI || !JWT_SECRET || !EMAIL_USER || !EMAIL_PASS) {
+if (!MONGODB_URI || !JWT_SECRET) {
   console.error("Required environment variables are missing")
-}
-
-// Email configuration
-let transporter
-try {
-  transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: EMAIL_USER,
-      pass: EMAIL_PASS,
-    },
-    // Ajouter un délai d'attente pour éviter les blocages
-    connectionTimeout: 10000,
-    // Activer le débogage pour voir les logs détaillés
-    debug: process.env.NODE_ENV === "development",
-  })
-
-  // Vérifier la connexion au serveur SMTP
-  transporter.verify((error, success) => {
-    if (error) {
-      console.error("Email configuration error:", error)
-    } else {
-      console.log("Email server is ready to send messages")
-    }
-  })
-} catch (error) {
-  console.error("Failed to create email transporter:", error)
 }
 
 // Database connection
 let cachedDb = null
-// Remplacer la fonction connectToDatabase() pour assurer une connexion fiable
 async function connectToDatabase() {
   if (cachedDb) {
     return cachedDb
@@ -70,25 +42,17 @@ async function connectToDatabase() {
   try {
     console.log("Connecting to MongoDB...")
     const client = await MongoClient.connect(MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      // Ajouter un délai d'attente pour la connexion
       connectTimeoutMS: 10000,
-      // Ajouter un délai d'attente pour les opérations
       socketTimeoutMS: 45000,
     })
 
     const db = client.db("jekledb")
-
-    // Vérifier que la connexion fonctionne en effectuant une opération simple
     await db.command({ ping: 1 })
-
     cachedDb = db
     console.log("MongoDB connection successful")
     return db
   } catch (error) {
     console.error("MongoDB connection error:", error)
-    // Ajouter plus de détails sur l'erreur
     if (error.name === "MongoNetworkError") {
       console.error("Network error connecting to MongoDB. Check your connection and MONGODB_URI.")
     } else if (error.name === "MongoServerSelectionError") {
@@ -135,6 +99,7 @@ const isAdmin = (req, res, next) => {
 }
 
 // User Routes
+// Nouvelle route d'inscription sans vérification par email
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body
@@ -153,104 +118,37 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ message: "Username or email already exists" })
     }
 
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString()
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Ajouter une gestion d'erreur plus robuste pour l'envoi d'email
-    try {
-      if (!transporter) {
-        throw new Error("Email transporter not configured")
-      }
-
-      await transporter.sendMail({
-        from: EMAIL_USER,
-        to: email,
-        subject: "Verify Your Jekle Account",
-        text: `Your verification code is: ${verificationCode}`,
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-            <h2 style="color: #333;">Bienvenue sur Jekle!</h2>
-            <p>Merci de vous être inscrit sur notre plateforme de streaming.</p>
-            <p>Votre code de vérification est: <strong style="font-size: 18px; color: #e50914;">${verificationCode}</strong></p>
-            <p>Ce code est valable pendant 1 heure.</p>
-            <p>À bientôt sur Jekle!</p>
-          </div>
-        `,
-      })
-
-      console.log(`Verification email sent to ${email}`)
-    } catch (emailError) {
-      console.error("Failed to send verification email:", emailError)
-
-      // Si l'envoi d'email échoue, on peut quand même créer le code de vérification
-      // mais on informe l'utilisateur qu'il y a eu un problème avec l'email
-      res.status(201).json({
-        message: "Account created but verification email could not be sent. Please contact support.",
-        emailError: true,
-      })
-
-      // Sauvegarder le code de vérification dans la base de données
-      await db.collection("verificationCodes").insertOne({
-        username,
-        email,
-        password: hashedPassword,
-        code: verificationCode,
-        createdAt: new Date(),
-      })
-
-      return // Sortir de la fonction pour éviter d'exécuter le code ci-dessous
-    }
-
-    // Sauvegarder le code de vérification dans la base de données
-    await db.collection("verificationCodes").insertOne({
+    // Créer directement l'utilisateur sans vérification par email
+    const newUser = {
       username,
       email,
       password: hashedPassword,
-      code: verificationCode,
-      createdAt: new Date(),
-    })
-
-    res.status(200).json({ message: "Verification code sent" })
-  } catch (error) {
-    console.error("Signup error:", error)
-    res.status(500).json({ message: "Server error during signup", error: error.message })
-  }
-})
-
-app.post("/verify-signup", async (req, res) => {
-  try {
-    const { username, code } = req.body
-    const db = await connectToDatabase()
-
-    const verificationRecord = await db.collection("verificationCodes").findOne({ username, code })
-
-    if (!verificationRecord) {
-      return res.status(400).json({ message: "Invalid verification code" })
-    }
-
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
-    if (verificationRecord.createdAt < oneHourAgo) {
-      await db.collection("verificationCodes").deleteOne({ username })
-      return res.status(400).json({ message: "Verification code expired" })
-    }
-
-    const newUser = {
-      username: verificationRecord.username,
-      email: verificationRecord.email,
-      password: verificationRecord.password,
       role: "user",
       isBanned: false,
       createdAt: new Date(),
     }
 
     await db.collection("users").insertOne(newUser)
-    await db.collection("verificationCodes").deleteOne({ username })
+    console.log(`User ${username} created successfully (no email verification)`)
 
-    res.status(201).json({ message: "Account created successfully" })
+    res.status(201).json({
+      message: "Account created successfully. You can now log in.",
+      skipVerification: true,
+    })
   } catch (error) {
-    console.error("Verification error:", error)
-    res.status(500).json({ message: "Server error during verification" })
+    console.error("Signup error:", error)
+    res.status(500).json({
+      message: "Server error during signup",
+      error: error.message,
+    })
   }
+})
+
+// Garder la route de vérification pour compatibilité, mais elle ne sera pas utilisée
+app.post("/verify-signup", async (req, res) => {
+  res.status(200).json({ message: "Verification not required" })
 })
 
 // Remplacer la fonction de login pour utiliser la vraie base de données
