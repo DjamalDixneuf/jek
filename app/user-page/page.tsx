@@ -28,7 +28,38 @@ export default function UserPage() {
   const [userName, setUserName] = useState("John Doe")
   const [userAvatar, setUserAvatar] = useState("J")
 
-  // Vérifier l'authentification
+  // Modifier la fonction pour récupérer les informations utilisateur depuis l'API plutôt que localStorage
+
+  // Ajouter une fonction pour charger les informations utilisateur
+  const loadUserInfo = async () => {
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/check-auth`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
+
+      const userData = await response.json()
+
+      // Mettre à jour les informations utilisateur
+      if (userData.username) {
+        setUserName(userData.username)
+        setUserAvatar(userData.username.charAt(0))
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement des informations utilisateur:", error)
+    }
+  }
+
+  // Modifier le useEffect pour appeler loadUserInfo
+  // Remplacer le useEffect existant par celui-ci:
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -36,14 +67,10 @@ export default function UserPage() {
       return
     }
 
-    // Récupérer le nom d'utilisateur du localStorage s'il existe
-    const savedUserName = localStorage.getItem("userName")
-    if (savedUserName) {
-      setUserName(savedUserName)
-      setUserAvatar(savedUserName.charAt(0))
-    }
+    // Charger les informations utilisateur depuis l'API
+    loadUserInfo()
 
-    // Charger les films (simulé)
+    // Charger les films depuis l'API
     loadMovies()
 
     // Ajouter l'écouteur de défilement
@@ -64,214 +91,32 @@ export default function UserPage() {
   const loadMovies = async () => {
     setIsLoading(true)
     try {
-      // Simuler le chargement des films depuis une API
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const token = localStorage.getItem("token")
+      if (!token) throw new Error("No authentication token")
 
-      // Données fictives pour la démo
-      const mockMovies = [
-        {
-          id: 1,
-          title: "Inception",
-          type: "film",
-          duration: "2h 28min",
-          genre: "Science Fiction, Action",
-          releaseYear: "2010",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "Un voleur qui s'infiltre dans les rêves des autres pour voler leurs secrets se voit offrir une chance de retrouver sa vie normale.",
-          videoUrl: "https://example.com/inception.mp4",
-          rating: 4.8,
-          categories: ["populaire", "action", "sci-fi"],
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          id: 2,
-          title: "Breaking Bad",
-          type: "série",
-          duration: "5 saisons",
-          genre: "Drame, Crime",
-          releaseYear: "2008",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description: "Un professeur de chimie atteint d'un cancer devient fabricant et vendeur de méthamphétamine.",
-          episodes: [
-            {
-              title: "Épisode 1",
-              description: "Le début de l'histoire de Walter White",
-              url: "https://example.com/bb-s01e01.mp4",
-            },
-            {
-              title: "Épisode 2",
-              description: "Walter et Jesse commencent leur partenariat",
-              url: "https://example.com/bb-s01e02.mp4",
-            },
-          ],
-          rating: 4.9,
-          categories: ["populaire", "drame", "crime"],
-        },
-        {
-          id: 3,
-          title: "The Dark Knight",
-          type: "film",
-          duration: "2h 32min",
-          genre: "Action, Crime, Drame",
-          releaseYear: "2008",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "Batman s'allie au procureur Harvey Dent pour démanteler le crime organisé à Gotham, mais ils se retrouvent bientôt face au Joker.",
-          videoUrl: "https://example.com/dark-knight.mp4",
-          rating: 4.9,
-          categories: ["populaire", "action", "drame"],
-        },
-        {
-          id: 4,
-          title: "Stranger Things",
-          type: "série",
-          duration: "4 saisons",
-          genre: "Drame, Fantastique, Horreur",
-          releaseYear: "2016",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "Des enfants font face à des forces surnaturelles et à des expériences gouvernementales secrètes.",
-          episodes: [
-            {
-              title: "Épisode 1",
-              description: "La disparition de Will Byers",
-              url: "https://example.com/st-s01e01.mp4",
-            },
-            { title: "Épisode 2", description: "La recherche commence", url: "https://example.com/st-s01e02.mp4" },
-          ],
-          rating: 4.7,
-          categories: ["populaire", "fantastique", "horreur"],
-        },
-        {
-          id: 5,
-          title: "Interstellar",
-          type: "film",
-          duration: "2h 49min",
-          genre: "Aventure, Drame, Science Fiction",
-          releaseYear: "2014",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "Une équipe d'explorateurs voyage à travers un trou de ver dans l'espace pour assurer la survie de l'humanité.",
-          videoUrl: "https://example.com/interstellar.mp4",
-          rating: 4.8,
-          categories: ["sci-fi", "drame", "aventure"],
-        },
-        {
-          id: 6,
-          title: "Game of Thrones",
-          type: "série",
-          duration: "8 saisons",
-          genre: "Action, Aventure, Drame",
-          releaseYear: "2011",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description: "Neuf familles nobles luttent pour le contrôle des terres de Westeros.",
-          episodes: [
-            { title: "Épisode 1", description: "L'hiver vient", url: "https://example.com/got-s01e01.mp4" },
-            { title: "Épisode 2", description: "La route royale", url: "https://example.com/got-s01e02.mp4" },
-          ],
-          rating: 4.7,
-          categories: ["populaire", "aventure", "drame"],
-        },
-        {
-          id: 7,
-          title: "The Witcher",
-          type: "série",
-          duration: "2 saisons",
-          genre: "Action, Aventure, Fantastique",
-          releaseYear: "2019",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description: "Le sorceleur Geralt, un chasseur de monstres, lutte pour trouver sa place dans un monde.",
-          episodes: [
-            { title: "Épisode 1", description: "Le début", url: "https://example.com/witcher-s01e01.mp4" },
-            { title: "Épisode 2", description: "La suite", url: "https://example.com/witcher-s01e02.mp4" },
-          ],
-          rating: 4.5,
-          categories: ["fantastique", "action", "aventure"],
-        },
-        {
-          id: 8,
-          title: "Joker",
-          type: "film",
-          duration: "2h 2min",
-          genre: "Crime, Drame, Thriller",
-          releaseYear: "2019",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description: "L'histoire de l'origine du Joker, l'ennemi juré de Batman.",
-          videoUrl: "https://example.com/joker.mp4",
-          rating: 4.6,
-          categories: ["crime", "drame", "thriller"],
-        },
-        {
-          id: 9,
-          title: "The Mandalorian",
-          type: "série",
-          duration: "2 saisons",
-          genre: "Action, Aventure, Science Fiction",
-          releaseYear: "2019",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description: "Les aventures d'un chasseur de primes mandalorien dans les confins de la galaxie.",
-          episodes: [
-            { title: "Épisode 1", description: "Le Mandalorien", url: "https://example.com/mando-s01e01.mp4" },
-            { title: "Épisode 2", description: "L'Enfant", url: "https://example.com/mando-s01e02.mp4" },
-          ],
-          rating: 4.8,
-          categories: ["sci-fi", "action", "aventure"],
-        },
-        {
-          id: 10,
-          title: "Black Mirror",
-          type: "série",
-          duration: "5 saisons",
-          genre: "Drame, Science Fiction, Thriller",
-          releaseYear: "2011",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "Une série d'anthologie explorant un futur proche où les innovations technologiques entrent en collision avec nos instincts les plus sombres.",
-          episodes: [
-            { title: "Épisode 1", description: "L'Hymne national", url: "https://example.com/bm-s01e01.mp4" },
-            { title: "Épisode 2", description: "15 millions de mérites", url: "https://example.com/bm-s01e02.mp4" },
-          ],
-          rating: 4.7,
-          categories: ["sci-fi", "drame", "thriller"],
-        },
-        {
-          id: 11,
-          title: "Dune",
-          type: "film",
-          duration: "2h 35min",
-          genre: "Action, Aventure, Science Fiction",
-          releaseYear: "2021",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "L'histoire du fils d'une famille noble chargé de protéger la ressource la plus précieuse de la galaxie.",
-          videoUrl: "https://example.com/dune.mp4",
-          rating: 4.7,
-          categories: ["sci-fi", "action", "aventure"],
-        },
-        {
-          id: 12,
-          title: "The Queen's Gambit",
-          type: "série",
-          duration: "1 saison",
-          genre: "Drame",
-          releaseYear: "2020",
-          thumbnailUrl: "/placeholder.svg?height=260&width=180",
-          description:
-            "L'histoire d'une prodige des échecs qui lutte contre la dépendance tout en essayant de devenir la meilleure joueuse d'échecs du monde.",
-          episodes: [
-            { title: "Épisode 1", description: "Ouvertures", url: "https://example.com/qg-s01e01.mp4" },
-            { title: "Épisode 2", description: "Échanges", url: "https://example.com/qg-s01e02.mp4" },
-          ],
-          rating: 4.8,
-          categories: ["drame"],
-        },
-      ]
+      })
 
-      // Sélectionner un film aléatoire pour la mise en avant
-      const randomIndex = Math.floor(Math.random() * mockMovies.length)
-      setFeaturedMovie(mockMovies[randomIndex])
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
+      }
 
-      setMovies(mockMovies)
+      const data = await response.json()
+
+      if (data.movies && data.movies.length > 0) {
+        setMovies(data.movies)
+
+        // Sélectionner un film aléatoire pour la mise en avant
+        const randomIndex = Math.floor(Math.random() * data.movies.length)
+        setFeaturedMovie(data.movies[randomIndex])
+      } else {
+        // Aucun film disponible
+        setMovies([])
+        setFeaturedMovie(null)
+      }
     } catch (error) {
       console.error("Erreur lors du chargement des films:", error)
     } finally {
@@ -299,17 +144,27 @@ export default function UserPage() {
   const filteredMovies = movies.filter((movie) => {
     const matchesSearch =
       movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      movie.genre.toLowerCase().includes(searchTerm.toLowerCase())
+      (movie.genre &&
+        typeof movie.genre === "string" &&
+        movie.genre.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (movie.genre &&
+        Array.isArray(movie.genre) &&
+        movie.genre.some((g: string) => g.toLowerCase().includes(searchTerm.toLowerCase())))
 
-    const matchesCategory = activeCategory === "all" || movie.categories.includes(activeCategory)
+    const matchesCategory = activeCategory === "all" || (movie.categories && movie.categories.includes(activeCategory))
 
     return matchesSearch && matchesCategory
   })
 
-  const popularMovies = movies.filter((movie) => movie.categories.includes("populaire"))
-  const actionMovies = movies.filter((movie) => movie.categories.includes("action"))
-  const dramaMovies = movies.filter((movie) => movie.categories.includes("drame"))
-  const scifiMovies = movies.filter((movie) => movie.categories.includes("sci-fi"))
+  // Filtrer les films par catégorie
+  const getMoviesByCategory = (category: string) => {
+    return movies.filter((movie) => movie.categories && movie.categories.includes(category))
+  }
+
+  const popularMovies = getMoviesByCategory("populaire")
+  const actionMovies = getMoviesByCategory("action")
+  const dramaMovies = getMoviesByCategory("drame")
+  const scifiMovies = getMoviesByCategory("sci-fi")
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -366,7 +221,7 @@ export default function UserPage() {
           </div>
           <div class="movie-detail-item">
             <div class="movie-detail-label">Genre:</div>
-            <div class="movie-detail-value">${movie.genre}</div>
+            <div class="movie-detail-value">${Array.isArray(movie.genre) ? movie.genre.join(", ") : movie.genre}</div>
           </div>
           <div class="movie-detail-item">
             <div class="movie-detail-label">Durée:</div>
@@ -396,7 +251,7 @@ export default function UserPage() {
           </div>
           <div class="movie-detail-item">
             <div class="movie-detail-label">Genre:</div>
-            <div class="movie-detail-value">${movie.genre}</div>
+            <div class="movie-detail-value">${Array.isArray(movie.genre) ? movie.genre.join(", ") : movie.genre}</div>
           </div>
           <div class="movie-detail-item">
             <div class="movie-detail-label">Durée:</div>
@@ -450,10 +305,10 @@ export default function UserPage() {
 
   // Fonction pour rendre une carte de film
   const renderMovieCard = (movie: any) => (
-    <div key={movie.id} className="netflix-card" onClick={() => openMovieModal(movie)}>
+    <div key={movie._id || movie.id} className="netflix-card" onClick={() => openMovieModal(movie)}>
       <div className="netflix-card-img">
         <Image
-          src={movie.thumbnailUrl || "/placeholder.svg"}
+          src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
           alt={movie.title}
           width={200}
           height={300}
@@ -464,10 +319,12 @@ export default function UserPage() {
         <h3 className="netflix-card-title">{movie.title}</h3>
         <div className="netflix-card-info">
           <span className="netflix-card-year">{movie.releaseYear}</span>
-          <span className="netflix-card-rating">★ {movie.rating}</span>
+          <span className="netflix-card-rating">★ {movie.rating || "N/A"}</span>
           <span className="netflix-card-duration">{movie.duration}</span>
         </div>
-        <p className="netflix-card-desc">{movie.description.substring(0, 100)}...</p>
+        <p className="netflix-card-desc">
+          {movie.description ? movie.description.substring(0, 100) + "..." : "Aucune description disponible"}
+        </p>
         <div className="netflix-card-buttons">
           <button className="netflix-play-btn">▶ Lecture</button>
           <button className="netflix-info-btn">ℹ️ Plus d'infos</button>
@@ -485,16 +342,42 @@ export default function UserPage() {
     setIsProfileModalOpen(!isProfileModalOpen)
   }
 
-  const updateProfile = (e: React.FormEvent) => {
+  // Modifier la fonction updateProfile pour mettre à jour le profil via l'API
+  // Remplacer la fonction updateProfile par celle-ci:
+  const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     const formData = new FormData(e.target as HTMLFormElement)
     const newName = formData.get("name") as string
+
     if (newName) {
-      setUserName(newName)
-      setUserAvatar(newName.charAt(0))
-      localStorage.setItem("userName", newName)
+      try {
+        const token = localStorage.getItem("token")
+        if (!token) throw new Error("No authentication token")
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/update-profile`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ username: newName }),
+        })
+
+        if (!response.ok) {
+          throw new Error("Erreur lors de la mise à jour du profil")
+        }
+
+        // Mettre à jour l'interface utilisateur
+        setUserName(newName)
+        setUserAvatar(newName.charAt(0))
+
+        // Fermer le modal
+        setIsProfileModalOpen(false)
+      } catch (error) {
+        console.error("Erreur lors de la mise à jour du profil:", error)
+        alert("Erreur lors de la mise à jour du profil. Veuillez réessayer.")
+      }
     }
-    setIsProfileModalOpen(false)
   }
 
   // Fermer le menu lorsqu'on clique en dehors
@@ -515,8 +398,6 @@ export default function UserPage() {
   return (
     <div className="netflix-container">
       {/* Header */}
-      {/* Modifier la section de l'en-tête pour afficher la navigation sur mobile et rapprocher l'icône de recherche du menu hamburger */}
-
       <header ref={headerRef} className={`netflix-header ${isHeaderScrolled ? "scrolled" : ""}`}>
         <div className="netflix-header-left">
           <div className="netflix-logo">
@@ -582,7 +463,7 @@ export default function UserPage() {
               <span className="netflix-match">Recommandé à 98%</span>
               <span className="netflix-year">{featuredMovie.releaseYear}</span>
               <span className="netflix-duration">{featuredMovie.duration}</span>
-              <span className="netflix-rating">★ {featuredMovie.rating}</span>
+              <span className="netflix-rating">★ {featuredMovie.rating || "N/A"}</span>
             </div>
             <p className="netflix-featured-desc">{featuredMovie.description}</p>
             <div className="netflix-featured-buttons">
@@ -595,7 +476,7 @@ export default function UserPage() {
           <div className="netflix-featured-gradient"></div>
           <div className="netflix-featured-img">
             <Image
-              src={featuredMovie.thumbnailUrl || "/placeholder.svg"}
+              src={featuredMovie.thumbnailUrl || "/placeholder.svg?height=600&width=1200"}
               alt={featuredMovie.title}
               fill
               style={{ objectFit: "cover" }}
@@ -611,6 +492,17 @@ export default function UserPage() {
           <div className="netflix-loading">
             <div className="netflix-spinner"></div>
           </div>
+        ) : movies.length === 0 ? (
+          <div className="netflix-empty-state">
+            <div className="netflix-empty-content">
+              <h2>Aucun contenu disponible pour le moment</h2>
+              <p>L'administrateur n'a pas encore ajouté de films ou de séries.</p>
+              <p>Vous pouvez demander l'ajout de contenu en cliquant sur "Demandes" dans le menu.</p>
+              <button className="netflix-request-btn" onClick={handleUserButton}>
+                Faire une demande
+              </button>
+            </div>
+          </div>
         ) : (
           <>
             {/* Populaires */}
@@ -619,9 +511,9 @@ export default function UserPage() {
                 <h2 className="netflix-row-title">Populaires sur Jekle</h2>
                 <div className="netflix-row-content">
                   {popularMovies.map((movie) => (
-                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
                       <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                         alt={movie.title}
                         width={200}
                         height={300}
@@ -630,10 +522,14 @@ export default function UserPage() {
                       <div className="netflix-item-info">
                         <h3>{movie.title}</h3>
                         <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
                           <span className="netflix-item-year">{movie.releaseYear}</span>
                         </div>
-                        <p>{movie.description.substring(0, 80)}...</p>
+                        <p>
+                          {movie.description
+                            ? movie.description.substring(0, 80) + "..."
+                            : "Aucune description disponible"}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -647,9 +543,9 @@ export default function UserPage() {
                 <h2 className="netflix-row-title">Action</h2>
                 <div className="netflix-row-content">
                   {actionMovies.map((movie) => (
-                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
                       <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                         alt={movie.title}
                         width={200}
                         height={300}
@@ -658,10 +554,14 @@ export default function UserPage() {
                       <div className="netflix-item-info">
                         <h3>{movie.title}</h3>
                         <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
                           <span className="netflix-item-year">{movie.releaseYear}</span>
                         </div>
-                        <p>{movie.description.substring(0, 80)}...</p>
+                        <p>
+                          {movie.description
+                            ? movie.description.substring(0, 80) + "..."
+                            : "Aucune description disponible"}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -675,9 +575,9 @@ export default function UserPage() {
                 <h2 className="netflix-row-title">Drame</h2>
                 <div className="netflix-row-content">
                   {dramaMovies.map((movie) => (
-                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
                       <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                         alt={movie.title}
                         width={200}
                         height={300}
@@ -686,10 +586,14 @@ export default function UserPage() {
                       <div className="netflix-item-info">
                         <h3>{movie.title}</h3>
                         <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
                           <span className="netflix-item-year">{movie.releaseYear}</span>
                         </div>
-                        <p>{movie.description.substring(0, 80)}...</p>
+                        <p>
+                          {movie.description
+                            ? movie.description.substring(0, 80) + "..."
+                            : "Aucune description disponible"}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -703,9 +607,9 @@ export default function UserPage() {
                 <h2 className="netflix-row-title">Science Fiction</h2>
                 <div className="netflix-row-content">
                   {scifiMovies.map((movie) => (
-                    <div key={movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
                       <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg"}
+                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                         alt={movie.title}
                         width={200}
                         height={300}
@@ -714,10 +618,14 @@ export default function UserPage() {
                       <div className="netflix-item-info">
                         <h3>{movie.title}</h3>
                         <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating}</span>
+                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
                           <span className="netflix-item-year">{movie.releaseYear}</span>
                         </div>
-                        <p>{movie.description.substring(0, 80)}...</p>
+                        <p>
+                          {movie.description
+                            ? movie.description.substring(0, 80) + "..."
+                            : "Aucune description disponible"}
+                        </p>
                       </div>
                     </div>
                   ))}
