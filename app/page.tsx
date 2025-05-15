@@ -19,9 +19,6 @@ export default function Home() {
     email: "",
     password: "",
   })
-  const [verificationData, setVerificationData] = useState({
-    code: "",
-  })
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const particlesRef = useRef<HTMLDivElement>(null)
@@ -111,14 +108,72 @@ export default function Home() {
     })
   }
 
-  const handleVerificationChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setVerificationData({
-      ...verificationData,
-      [e.target.id.replace("verification-", "")]: e.target.value,
-    })
+  // Modifier la fonction handleSignupSubmit pour ne plus stocker le nom d'utilisateur dans localStorage
+  // et s'assurer que la validation d'unicité est effectuée côté serveur
+
+  // Remplacer la fonction handleSignupSubmit par celle-ci:
+  const handleSignupSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    try {
+      // Validation
+      if (signupData.password.length < 6) {
+        throw new Error("Le mot de passe doit contenir au moins 6 caractères")
+      }
+
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(signupData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Erreur d'inscription")
+      }
+
+      // Compte créé avec succès, connecter automatiquement l'utilisateur
+      const loginResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: signupData.username,
+          password: signupData.password,
+        }),
+      })
+
+      if (!loginResponse.ok) {
+        // Si la connexion échoue, rediriger vers la page de connexion
+        alert("Compte créé avec succès! Veuillez vous connecter.")
+        showTab("login")
+        return
+      }
+
+      const loginData = await loginResponse.json()
+
+      // Stocker uniquement le token et le rôle dans localStorage
+      localStorage.setItem("token", loginData.token)
+      localStorage.setItem("refreshToken", loginData.refreshToken)
+      localStorage.setItem("role", loginData.role)
+
+      // Rediriger vers la page utilisateur
+      router.push("/user-page")
+    } catch (error: any) {
+      setError(error.message || "Erreur d'inscription. Veuillez réessayer.")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Remplacer les fonctions d'authentification simulées par des appels API réels
+  // Modifier la fonction handleLoginSubmit pour ne plus stocker le nom d'utilisateur dans localStorage
+  // Remplacer la fonction handleLoginSubmit par celle-ci:
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -140,7 +195,7 @@ export default function Home() {
 
       const data = await response.json()
 
-      // Stocker le token et le rôle
+      // Stocker uniquement le token et le rôle
       localStorage.setItem("token", data.token)
       localStorage.setItem("refreshToken", data.refreshToken)
       localStorage.setItem("role", data.role)
@@ -153,81 +208,6 @@ export default function Home() {
       }
     } catch (error: any) {
       setError(error.message || "Erreur de connexion. Veuillez réessayer.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    try {
-      // Validation
-      if (signupData.password.length < 6) {
-        throw new Error("Le mot de passe doit contenir au moins 6 caractères")
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(signupData),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Erreur d'inscription")
-      }
-
-      // Stocker temporairement les données d'inscription
-      localStorage.setItem("verificationUsername", signupData.username)
-
-      // Passer à l'onglet de vérification
-      showTab("verification")
-    } catch (error: any) {
-      setError(error.message || "Erreur d'inscription. Veuillez réessayer.")
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleVerificationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError("")
-
-    try {
-      const username = localStorage.getItem("verificationUsername")
-      if (!username) {
-        throw new Error("Session expirée, veuillez vous inscrire à nouveau")
-      }
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/verify-signup`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          code: verificationData.code,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || "Erreur de vérification")
-      }
-
-      // Compte créé avec succès
-      localStorage.removeItem("verificationUsername")
-      showTab("login")
-      // Afficher un message de succès
-      alert("Compte créé avec succès ! Vous pouvez maintenant vous connecter.")
-    } catch (error: any) {
-      setError(error.message || "Erreur de vérification. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
@@ -352,29 +332,6 @@ export default function Home() {
 
             <button type="submit" className="button" disabled={isLoading}>
               {isLoading ? "Création en cours..." : "Créer un compte"}
-            </button>
-          </form>
-        </div>
-
-        <div id="verification" className={`tab-content ${activeTab === "verification" ? "active" : ""}`}>
-          <form className="form" id="verification-form" onSubmit={handleVerificationSubmit}>
-            <p>Un code de vérification a été envoyé à votre adresse email. Veuillez l'entrer ci-dessous.</p>
-            <label htmlFor="verification-code">Code de vérification</label>
-            <div className="input-group">
-              <span className="icon">&#128273;</span>
-              <input
-                type="text"
-                id="verification-code"
-                placeholder="Entrez le code de vérification"
-                required
-                value={verificationData.code}
-                onChange={handleVerificationChange}
-                disabled={isLoading}
-              />
-            </div>
-
-            <button type="submit" className="button" disabled={isLoading}>
-              {isLoading ? "Vérification en cours..." : "Vérifier"}
             </button>
           </form>
         </div>
