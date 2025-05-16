@@ -243,15 +243,8 @@ app.get("/movies", authenticateToken, async (req, res) => {
       return movie
     })
 
-    res.json({
-      movies: transformedMovies,
-      pagination: {
-        total,
-        page: Number.parseInt(page),
-        limit: Number.parseInt(limit),
-        pages: Math.ceil(total / limit),
-      },
-    })
+    // Renvoyer directement le tableau de films au lieu d'un objet contenant le tableau
+    res.json(transformedMovies)
   } catch (error) {
     console.error("Error fetching movies:", error)
     res.status(500).json({ message: "Error fetching movies" })
