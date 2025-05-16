@@ -209,10 +209,27 @@ export default function UserPage() {
     return movies.filter((movie) => movie.categories && movie.categories.includes(category))
   }
 
+  // Obtenir les films par genre
+  const getMoviesByGenre = (genre: string) => {
+    return movies.filter((movie) => {
+      if (movie.genre) {
+        if (Array.isArray(movie.genre)) {
+          return movie.genre.some((g: string) => g.toLowerCase() === genre.toLowerCase())
+        } else if (typeof movie.genre === "string") {
+          return movie.genre.toLowerCase() === genre.toLowerCase()
+        }
+      }
+      return false
+    })
+  }
+
   const popularMovies = getMoviesByCategory("populaire")
   const actionMovies = getMoviesByCategory("action")
   const dramaMovies = getMoviesByCategory("drame")
   const scifiMovies = getMoviesByCategory("sci-fi")
+
+  // Obtenir tous les films et séries pour l'affichage principal
+  const allMovies = movies.slice(0, 10) // Limiter à 10 pour l'affichage principal
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -659,6 +676,38 @@ export default function UserPage() {
             {/* Affichage par catégories - uniquement sur la page d'accueil */}
             {contentType === "all" && selectedGenre === "all" && (
               <>
+                {/* Tous les films et séries */}
+                {allMovies.length > 0 && (
+                  <div className="netflix-row">
+                    <h2 className="netflix-row-title">Tous les films et séries</h2>
+                    <div className="netflix-row-content">
+                      {allMovies.map((movie) => (
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                          <Image
+                            src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                            alt={movie.title}
+                            width={200}
+                            height={300}
+                            className="netflix-item-img"
+                          />
+                          <div className="netflix-item-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-item-meta">
+                              <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                              <span className="netflix-item-year">{movie.releaseYear}</span>
+                            </div>
+                            <p>
+                              {movie.description
+                                ? movie.description.substring(0, 80) + "..."
+                                : "Aucune description disponible"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Populaires */}
                 {popularMovies.length > 0 && (
                   <div className="netflix-row">
@@ -786,6 +835,48 @@ export default function UserPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Afficher les genres disponibles */}
+                {availableGenres.map((genre) => {
+                  const genreMovies = getMoviesByGenre(genre)
+                  if (genreMovies.length > 0) {
+                    return (
+                      <div key={genre} className="netflix-row">
+                        <h2 className="netflix-row-title">{genre}</h2>
+                        <div className="netflix-row-content">
+                          {genreMovies.map((movie) => (
+                            <div
+                              key={movie._id || movie.id}
+                              className="netflix-item"
+                              onClick={() => openMovieModal(movie)}
+                            >
+                              <Image
+                                src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                                alt={movie.title}
+                                width={200}
+                                height={300}
+                                className="netflix-item-img"
+                              />
+                              <div className="netflix-item-info">
+                                <h3>{movie.title}</h3>
+                                <div className="netflix-item-meta">
+                                  <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                                  <span className="netflix-item-year">{movie.releaseYear}</span>
+                                </div>
+                                <p>
+                                  {movie.description
+                                    ? movie.description.substring(0, 80) + "..."
+                                    : "Aucune description disponible"}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })}
               </>
             )}
           </>
