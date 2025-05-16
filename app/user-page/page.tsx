@@ -173,8 +173,11 @@ export default function UserPage() {
     setIsGenreMenuOpen(false) // Fermer le menu des genres
   }
 
-  // Fonction pour basculer l'affichage du menu des genres
-  const toggleGenreMenu = () => {
+  // Modifier la structure du menu hamburger et la barre de genres
+
+  // 1. Modifier la fonction toggleGenreMenu pour qu'elle fonctionne comme un menu déroulant
+  const toggleGenreMenu = (e: React.MouseEvent) => {
+    e.stopPropagation() // Empêcher la propagation pour éviter de fermer immédiatement
     setIsGenreMenuOpen(!isGenreMenuOpen)
   }
 
@@ -473,7 +476,7 @@ export default function UserPage() {
             <Logo className="iconf-svg" />
           </div>
           <nav className="netflix-nav">
-            <ul>
+            <ul className="netflix-desktop-nav">
               <li
                 className={`netflix-nav-item ${contentType === "all" && selectedGenre === "all" ? "active" : ""}`}
                 onClick={() => handleContentTypeChange("all")}
@@ -530,6 +533,44 @@ export default function UserPage() {
               <div className="netflix-avatar">{userAvatar}</div>
               <span>Profil</span>
             </div>
+
+            {/* Éléments de navigation pour mobile */}
+            <div className="netflix-mobile-nav">
+              <div
+                className={`netflix-menu-item ${contentType === "all" && selectedGenre === "all" ? "active" : ""}`}
+                onClick={() => {
+                  handleContentTypeChange("all")
+                  setIsMenuOpen(false)
+                }}
+              >
+                <span>Accueil</span>
+              </div>
+              <div
+                className={`netflix-menu-item ${contentType === "série" ? "active" : ""}`}
+                onClick={() => {
+                  handleContentTypeChange("série")
+                  setIsMenuOpen(false)
+                }}
+              >
+                <span>Séries</span>
+              </div>
+              <div
+                className={`netflix-menu-item ${contentType === "film" ? "active" : ""}`}
+                onClick={() => {
+                  handleContentTypeChange("film")
+                  setIsMenuOpen(false)
+                }}
+              >
+                <span>Films</span>
+              </div>
+              <div className="netflix-menu-item">
+                <span>Nouveautés</span>
+              </div>
+              <div className="netflix-menu-item">
+                <span>Ma liste</span>
+              </div>
+            </div>
+
             <div className="netflix-menu-item" onClick={handleUserButton}>
               <span>Demandes</span>
             </div>
@@ -544,21 +585,37 @@ export default function UserPage() {
       {(contentType === "film" || contentType === "série") && (
         <div className="netflix-genre-bar">
           <div className="netflix-genre-container">
-            <div
-              className={`netflix-genre-item ${selectedGenre === "all" ? "active" : ""}`}
-              onClick={() => handleGenreChange("all")}
-            >
-              Tous les genres
+            <div className={`netflix-genre-selector ${isGenreMenuOpen ? "active" : ""}`} onClick={toggleGenreMenu}>
+              <span>{selectedGenre === "all" ? "Tous les genres" : selectedGenre}</span>
+              <span className="netflix-genre-arrow">▼</span>
+
+              {/* Menu déroulant des genres */}
+              {isGenreMenuOpen && (
+                <div className="netflix-genre-dropdown">
+                  <div
+                    className={`netflix-genre-dropdown-item ${selectedGenre === "all" ? "active" : ""}`}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleGenreChange("all")
+                    }}
+                  >
+                    Tous les genres
+                  </div>
+                  {availableGenres.map((genre) => (
+                    <div
+                      key={genre}
+                      className={`netflix-genre-dropdown-item ${selectedGenre === genre ? "active" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleGenreChange(genre)
+                      }}
+                    >
+                      {genre}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            {availableGenres.map((genre) => (
-              <div
-                key={genre}
-                className={`netflix-genre-item ${selectedGenre === genre ? "active" : ""}`}
-                onClick={() => handleGenreChange(genre)}
-              >
-                {genre}
-              </div>
-            ))}
           </div>
         </div>
       )}
