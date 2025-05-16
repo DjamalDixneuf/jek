@@ -28,7 +28,11 @@ export default function UserPage() {
   const [userName, setUserName] = useState("John Doe")
   const [userAvatar, setUserAvatar] = useState("J")
 
-  // Modifier la fonction pour récupérer les informations utilisateur depuis l'API plutôt que localStorage
+  // Nouveaux états pour le filtrage par genre et type
+  const [contentType, setContentType] = useState("all") // "all", "film", "série"
+  const [selectedGenre, setSelectedGenre] = useState("all")
+  const [availableGenres, setAvailableGenres] = useState<string[]>([])
+  const [isGenreMenuOpen, setIsGenreMenuOpen] = useState(false)
 
   // Ajouter une fonction pour charger les informations utilisateur
   const loadUserInfo = async () => {
@@ -59,7 +63,6 @@ export default function UserPage() {
   }
 
   // Modifier le useEffect pour appeler loadUserInfo
-  // Remplacer le useEffect existant par celui-ci:
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -106,19 +109,39 @@ export default function UserPage() {
 
       const data = await response.json()
 
-      if (data.movies && data.movies.length > 0) {
-        setMovies(data.movies)
+      // S'assurer que data est un tableau
+      const moviesArray = Array.isArray(data) ? data : data.movies && Array.isArray(data.movies) ? data.movies : []
+
+      if (moviesArray.length > 0) {
+        setMovies(moviesArray)
+
+        // Extraire tous les genres uniques des films
+        const genres = new Set<string>()
+        moviesArray.forEach((movie) => {
+          if (movie.genre) {
+            if (Array.isArray(movie.genre)) {
+              movie.genre.forEach((g: string) => genres.add(g))
+            } else if (typeof movie.genre === "string") {
+              genres.add(movie.genre)
+            }
+          }
+        })
+        setAvailableGenres(Array.from(genres))
 
         // Sélectionner un film aléatoire pour la mise en avant
-        const randomIndex = Math.floor(Math.random() * data.movies.length)
-        setFeaturedMovie(data.movies[randomIndex])
+        const randomIndex = Math.floor(Math.random() * moviesArray.length)
+        setFeaturedMovie(moviesArray[randomIndex])
       } else {
         // Aucun film disponible
         setMovies([])
         setFeaturedMovie(null)
+        setAvailableGenres([])
       }
     } catch (error) {
       console.error("Erreur lors du chargement des films:", error)
+      setMovies([])
+      setFeaturedMovie(null)
+      setAvailableGenres([])
     } finally {
       setIsLoading(false)
     }
@@ -137,11 +160,27 @@ export default function UserPage() {
     }
   }
 
-  const handleCategoryChange = (category: string) => {
-    setActiveCategory(category)
+  // Nouvelle fonction pour gérer le changement de type de contenu (films/séries)
+  const handleContentTypeChange = (type: string) => {
+    setContentType(type)
+    setSelectedGenre("all") // Réinitialiser le genre sélectionné
+    setIsGenreMenuOpen(false) // Fermer le menu des genres
   }
 
+  // Nouvelle fonction pour gérer le changement de genre
+  const handleGenreChange = (genre: string) => {
+    setSelectedGenre(genre)
+    setIsGenreMenuOpen(false) // Fermer le menu des genres
+  }
+
+  // Fonction pour basculer l'affichage du menu des genres
+  const toggleGenreMenu = () => {
+    setIsGenreMenuOpen(!isGenreMenuOpen)
+  }
+
+  // Filtrer les films en fonction du type de contenu et du genre sélectionnés
   const filteredMovies = movies.filter((movie) => {
+    // Filtrer par terme de recherche
     const matchesSearch =
       movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (movie.genre &&
@@ -151,9 +190,18 @@ export default function UserPage() {
         Array.isArray(movie.genre) &&
         movie.genre.some((g: string) => g.toLowerCase().includes(searchTerm.toLowerCase())))
 
-    const matchesCategory = activeCategory === "all" || (movie.categories && movie.categories.includes(activeCategory))
+    // Filtrer par type de contenu (film/série)
+    const matchesType = contentType === "all" || movie.type === contentType
 
-    return matchesSearch && matchesCategory
+    // Filtrer par genre
+    const matchesGenre =
+      selectedGenre === "all" ||
+      (movie.genre && typeof movie.genre === "string" && movie.genre.toLowerCase() === selectedGenre.toLowerCase()) ||
+      (movie.genre &&
+        Array.isArray(movie.genre) &&
+        movie.genre.some((g: string) => g.toLowerCase() === selectedGenre.toLowerCase()))
+
+    return matchesSearch && matchesType && matchesGenre
   })
 
   // Filtrer les films par catégorie
@@ -343,7 +391,6 @@ export default function UserPage() {
   }
 
   // Modifier la fonction updateProfile pour mettre à jour le profil via l'API
-  // Remplacer la fonction updateProfile par celle-ci:
   const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     const formData = new FormData(e.target as HTMLFormElement)
@@ -387,13 +434,18 @@ export default function UserPage() {
       if (isMenuOpen && !target.closest(".netflix-dropdown-menu") && !target.closest(".netflix-menu-toggle")) {
         setIsMenuOpen(false)
       }
+
+      // Fermer le menu des genres si on clique en dehors
+      if (isGenreMenuOpen && !target.closest(".netflix-genre-menu") && !target.closest(".netflix-nav-item")) {
+        setIsGenreMenuOpen(false)
+      }
     }
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => {
       document.removeEventListener("mousedown", handleClickOutside)
     }
-  }, [isMenuOpen])
+  }, [isMenuOpen, isGenreMenuOpen])
 
   return (
     <div className="netflix-container">
@@ -405,11 +457,28 @@ export default function UserPage() {
           </div>
           <nav className="netflix-nav">
             <ul>
-              <li className="active">Accueil</li>
-              <li>Séries</li>
-              <li>Films</li>
-              <li>Nouveautés</li>
-              <li>Ma liste</li>
+              <li
+                className={`netflix-nav-item ${contentType === "all" && selectedGenre === "all" ? "active" : ""}`}
+                onClick={() => handleContentTypeChange("all")}
+              >
+                Accueil
+              </li>
+              <li
+                className={`netflix-nav-item ${contentType === "série" ? "active" : ""}`}
+                onClick={() => handleContentTypeChange("série")}
+              >
+                Séries
+                {contentType === "série" && <div className="netflix-nav-indicator"></div>}
+              </li>
+              <li
+                className={`netflix-nav-item ${contentType === "film" ? "active" : ""}`}
+                onClick={() => handleContentTypeChange("film")}
+              >
+                Films
+                {contentType === "film" && <div className="netflix-nav-indicator"></div>}
+              </li>
+              <li className="netflix-nav-item">Nouveautés</li>
+              <li className="netflix-nav-item">Ma liste</li>
             </ul>
           </nav>
         </div>
@@ -454,8 +523,31 @@ export default function UserPage() {
         </div>
       </header>
 
-      {/* Featured Content */}
-      {featuredMovie && !isLoading && (
+      {/* Menu des genres (affiché uniquement quand un type de contenu est sélectionné) */}
+      {(contentType === "film" || contentType === "série") && (
+        <div className="netflix-genre-bar">
+          <div className="netflix-genre-container">
+            <div
+              className={`netflix-genre-item ${selectedGenre === "all" ? "active" : ""}`}
+              onClick={() => handleGenreChange("all")}
+            >
+              Tous les genres
+            </div>
+            {availableGenres.map((genre) => (
+              <div
+                key={genre}
+                className={`netflix-genre-item ${selectedGenre === genre ? "active" : ""}`}
+                onClick={() => handleGenreChange(genre)}
+              >
+                {genre}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Featured Content - Affiché uniquement sur la page d'accueil ou si aucun genre n'est sélectionné */}
+      {featuredMovie && !isLoading && (contentType === "all" || selectedGenre === "all") && (
         <div className="netflix-featured">
           <div className="netflix-featured-content">
             <h1 className="netflix-featured-title">{featuredMovie.title}</h1>
@@ -503,33 +595,60 @@ export default function UserPage() {
               </button>
             </div>
           </div>
+        ) : filteredMovies.length === 0 ? (
+          <div className="netflix-empty-state">
+            <div className="netflix-empty-content">
+              <h2>Aucun contenu ne correspond à votre recherche</h2>
+              <p>Essayez de modifier vos critères de recherche ou de sélectionner un autre genre.</p>
+              <button
+                className="netflix-reset-btn"
+                onClick={() => {
+                  setContentType("all")
+                  setSelectedGenre("all")
+                  setSearchTerm("")
+                }}
+              >
+                Réinitialiser les filtres
+              </button>
+            </div>
+          </div>
         ) : (
           <>
-            {/* Populaires */}
-            {popularMovies.length > 0 && (
-              <div className="netflix-row">
-                <h2 className="netflix-row-title">Populaires sur Jekle</h2>
-                <div className="netflix-row-content">
-                  {popularMovies.map((movie) => (
-                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
-                      <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
-                        alt={movie.title}
-                        width={200}
-                        height={300}
-                        className="netflix-item-img"
-                      />
-                      <div className="netflix-item-info">
-                        <h3>{movie.title}</h3>
-                        <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
-                          <span className="netflix-item-year">{movie.releaseYear}</span>
+            {/* Affichage des films filtrés */}
+            {(contentType !== "all" || selectedGenre !== "all") && (
+              <div className="netflix-filtered-content">
+                <h2 className="netflix-section-title">
+                  {contentType === "all" ? "Tous les contenus" : contentType === "film" ? "Films" : "Séries"}
+                  {selectedGenre !== "all" && ` - ${selectedGenre}`}
+                </h2>
+                <div className="netflix-grid-view">
+                  {filteredMovies.map((movie) => (
+                    <div
+                      key={movie._id || movie.id}
+                      className="netflix-grid-item"
+                      onClick={() => openMovieModal(movie)}
+                    >
+                      <div className="netflix-grid-img">
+                        <Image
+                          src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                          alt={movie.title}
+                          width={200}
+                          height={300}
+                          className="netflix-grid-thumbnail"
+                        />
+                        <div className="netflix-grid-overlay">
+                          <div className="netflix-grid-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-grid-meta">
+                              <span>{movie.releaseYear}</span>
+                              <span>{movie.duration}</span>
+                            </div>
+                            <p>
+                              {movie.description ? movie.description.substring(0, 80) + "..." : "Aucune description"}
+                            </p>
+                          </div>
+                          <button className="netflix-grid-play">▶ Lecture</button>
                         </div>
-                        <p>
-                          {movie.description
-                            ? movie.description.substring(0, 80) + "..."
-                            : "Aucune description disponible"}
-                        </p>
                       </div>
                     </div>
                   ))}
@@ -537,100 +656,137 @@ export default function UserPage() {
               </div>
             )}
 
-            {/* Action */}
-            {actionMovies.length > 0 && (
-              <div className="netflix-row">
-                <h2 className="netflix-row-title">Action</h2>
-                <div className="netflix-row-content">
-                  {actionMovies.map((movie) => (
-                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
-                      <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
-                        alt={movie.title}
-                        width={200}
-                        height={300}
-                        className="netflix-item-img"
-                      />
-                      <div className="netflix-item-info">
-                        <h3>{movie.title}</h3>
-                        <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
-                          <span className="netflix-item-year">{movie.releaseYear}</span>
+            {/* Affichage par catégories - uniquement sur la page d'accueil */}
+            {contentType === "all" && selectedGenre === "all" && (
+              <>
+                {/* Populaires */}
+                {popularMovies.length > 0 && (
+                  <div className="netflix-row">
+                    <h2 className="netflix-row-title">Populaires sur Jekle</h2>
+                    <div className="netflix-row-content">
+                      {popularMovies.map((movie) => (
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                          <Image
+                            src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                            alt={movie.title}
+                            width={200}
+                            height={300}
+                            className="netflix-item-img"
+                          />
+                          <div className="netflix-item-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-item-meta">
+                              <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                              <span className="netflix-item-year">{movie.releaseYear}</span>
+                            </div>
+                            <p>
+                              {movie.description
+                                ? movie.description.substring(0, 80) + "..."
+                                : "Aucune description disponible"}
+                            </p>
+                          </div>
                         </div>
-                        <p>
-                          {movie.description
-                            ? movie.description.substring(0, 80) + "..."
-                            : "Aucune description disponible"}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            {/* Drame */}
-            {dramaMovies.length > 0 && (
-              <div className="netflix-row">
-                <h2 className="netflix-row-title">Drame</h2>
-                <div className="netflix-row-content">
-                  {dramaMovies.map((movie) => (
-                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
-                      <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
-                        alt={movie.title}
-                        width={200}
-                        height={300}
-                        className="netflix-item-img"
-                      />
-                      <div className="netflix-item-info">
-                        <h3>{movie.title}</h3>
-                        <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
-                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                {/* Action */}
+                {actionMovies.length > 0 && (
+                  <div className="netflix-row">
+                    <h2 className="netflix-row-title">Action</h2>
+                    <div className="netflix-row-content">
+                      {actionMovies.map((movie) => (
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                          <Image
+                            src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                            alt={movie.title}
+                            width={200}
+                            height={300}
+                            className="netflix-item-img"
+                          />
+                          <div className="netflix-item-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-item-meta">
+                              <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                              <span className="netflix-item-year">{movie.releaseYear}</span>
+                            </div>
+                            <p>
+                              {movie.description
+                                ? movie.description.substring(0, 80) + "..."
+                                : "Aucune description disponible"}
+                            </p>
+                          </div>
                         </div>
-                        <p>
-                          {movie.description
-                            ? movie.description.substring(0, 80) + "..."
-                            : "Aucune description disponible"}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
+                  </div>
+                )}
 
-            {/* Science Fiction */}
-            {scifiMovies.length > 0 && (
-              <div className="netflix-row">
-                <h2 className="netflix-row-title">Science Fiction</h2>
-                <div className="netflix-row-content">
-                  {scifiMovies.map((movie) => (
-                    <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
-                      <Image
-                        src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
-                        alt={movie.title}
-                        width={200}
-                        height={300}
-                        className="netflix-item-img"
-                      />
-                      <div className="netflix-item-info">
-                        <h3>{movie.title}</h3>
-                        <div className="netflix-item-meta">
-                          <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
-                          <span className="netflix-item-year">{movie.releaseYear}</span>
+                {/* Drame */}
+                {dramaMovies.length > 0 && (
+                  <div className="netflix-row">
+                    <h2 className="netflix-row-title">Drame</h2>
+                    <div className="netflix-row-content">
+                      {dramaMovies.map((movie) => (
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                          <Image
+                            src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                            alt={movie.title}
+                            width={200}
+                            height={300}
+                            className="netflix-item-img"
+                          />
+                          <div className="netflix-item-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-item-meta">
+                              <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                              <span className="netflix-item-year">{movie.releaseYear}</span>
+                            </div>
+                            <p>
+                              {movie.description
+                                ? movie.description.substring(0, 80) + "..."
+                                : "Aucune description disponible"}
+                            </p>
+                          </div>
                         </div>
-                        <p>
-                          {movie.description
-                            ? movie.description.substring(0, 80) + "..."
-                            : "Aucune description disponible"}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                  </div>
+                )}
+
+                {/* Science Fiction */}
+                {scifiMovies.length > 0 && (
+                  <div className="netflix-row">
+                    <h2 className="netflix-row-title">Science Fiction</h2>
+                    <div className="netflix-row-content">
+                      {scifiMovies.map((movie) => (
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                          <Image
+                            src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
+                            alt={movie.title}
+                            width={200}
+                            height={300}
+                            className="netflix-item-img"
+                          />
+                          <div className="netflix-item-info">
+                            <h3>{movie.title}</h3>
+                            <div className="netflix-item-meta">
+                              <span className="netflix-item-rating">★ {movie.rating || "N/A"}</span>
+                              <span className="netflix-item-year">{movie.releaseYear}</span>
+                            </div>
+                            <p>
+                              {movie.description
+                                ? movie.description.substring(0, 80) + "..."
+                                : "Aucune description disponible"}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
