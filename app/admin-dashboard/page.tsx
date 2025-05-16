@@ -92,10 +92,13 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      setUsers(data)
+      // S'assurer que data est un tableau
+      setUsers(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs:", error)
       alert("Impossible de charger les utilisateurs. Veuillez réessayer.")
+      // En cas d'erreur, initialiser users comme un tableau vide
+      setUsers([])
     } finally {
       setIsLoading(false)
     }
@@ -118,10 +121,13 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      setMovies(data)
+      // S'assurer que data.movies est un tableau (si l'API renvoie {movies: [...]}), sinon utiliser data directement
+      setMovies(Array.isArray(data.movies) ? data.movies : Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erreur lors du chargement des films:", error)
       alert("Impossible de charger les films et séries. Veuillez réessayer.")
+      // En cas d'erreur, initialiser movies comme un tableau vide
+      setMovies([])
     } finally {
       setIsLoading(false)
     }
@@ -144,10 +150,13 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      setRequests(data)
+      // S'assurer que data est un tableau
+      setRequests(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erreur lors du chargement des demandes:", error)
       alert("Impossible de charger les demandes. Veuillez réessayer.")
+      // En cas d'erreur, initialiser requests comme un tableau vide
+      setRequests([])
     } finally {
       setIsLoading(false)
     }
@@ -460,18 +469,23 @@ export default function AdminDashboardPage() {
   }
 
   // Filtrer les utilisateurs en fonction du terme de recherche
-  const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
-  )
+  const filteredUsers = Array.isArray(users)
+    ? users.filter(
+        (user) =>
+          user.username.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(userSearchTerm.toLowerCase()),
+      )
+    : []
 
   // Filtrer les films en fonction du terme de recherche
-  const filteredMovies = movies.filter(
-    (movie) =>
-      movie.title.toLowerCase().includes(movieSearchTerm.toLowerCase()) ||
-      movie.genre.some((g: string) => g.toLowerCase().includes(movieSearchTerm.toLowerCase())),
-  )
+  const filteredMovies = Array.isArray(movies)
+    ? movies.filter(
+        (movie) =>
+          movie.title.toLowerCase().includes(movieSearchTerm.toLowerCase()) ||
+          (Array.isArray(movie.genre) &&
+            movie.genre.some((g) => g.toLowerCase().includes(movieSearchTerm.toLowerCase()))),
+      )
+    : []
 
   return (
     <div className="netflix-container admin-dashboard">
