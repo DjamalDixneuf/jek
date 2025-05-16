@@ -91,6 +91,176 @@ body {
   color: white;
 }
 
+/* Ajouter ces styles pour le filtrage par genre */
+
+/* Barre de navigation */
+.netflix-nav-item {
+  position: relative;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.netflix-nav-item:hover {
+  color: #e50914;
+}
+
+.netflix-nav-indicator {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #e50914;
+}
+
+/* Barre de genres */
+.netflix-genre-bar {
+  position: relative;
+  width: 100%;
+  background-color: rgba(20, 20, 20, 0.8);
+  padding: 10px 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.netflix-genre-container {
+  display: flex;
+  padding: 0 60px;
+  gap: 20px;
+}
+
+.netflix-genre-item {
+  padding: 5px 15px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.netflix-genre-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.netflix-genre-item.active {
+  background-color: #e50914;
+  color: white;
+}
+
+/* Vue en grille pour les contenus filtrés */
+.netflix-filtered-content {
+  padding: 20px 60px;
+}
+
+.netflix-section-title {
+  font-size: 24px;
+  margin-bottom: 20px;
+  font-weight: 600;
+}
+
+.netflix-grid-view {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.netflix-grid-item {
+  position: relative;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.netflix-grid-item:hover {
+  transform: scale(1.05);
+  z-index: 2;
+}
+
+.netflix-grid-img {
+  position: relative;
+  width: 100%;
+  height: 300px;
+}
+
+.netflix-grid-thumbnail {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.netflix-grid-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  padding: 15px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.netflix-grid-item:hover .netflix-grid-overlay {
+  opacity: 1;
+}
+
+.netflix-grid-info h3 {
+  font-size: 16px;
+  margin-bottom: 5px;
+}
+
+.netflix-grid-meta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #aaa;
+  margin-bottom: 5px;
+}
+
+.netflix-grid-info p {
+  font-size: 12px;
+  color: #ddd;
+  margin-bottom: 10px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.netflix-grid-play {
+  background-color: #e50914;
+  color: white;
+  border: none;
+  padding: 5px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+}
+
+.netflix-grid-play:hover {
+  background-color: #f40612;
+}
+
+/* Bouton de réinitialisation des filtres */
+.netflix-reset-btn {
+  background-color: #e50914;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.netflix-reset-btn:hover {
+  background-color: #f40612;
+}
+
 .netflix-header-right {
   display: flex;
   align-items: center;
@@ -799,6 +969,53 @@ body {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
+/* Ajout de styles pour l'état vide */
+.netflix-empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding: 2rem;
+  text-align: center;
+}
+
+.netflix-empty-content {
+  max-width: 600px;
+  background-color: rgba(20, 20, 20, 0.7);
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.netflix-empty-content h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  color: #e50914;
+}
+
+.netflix-empty-content p {
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #fff;
+}
+
+.netflix-request-btn {
+  background-color: #e50914;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.netflix-request-btn:hover {
+  background-color: #f40612;
+}
+
 /* Animation pour le fade in */
 @keyframes fadeIn {
   from {
@@ -1130,5 +1347,25 @@ body {
 
   .netflix-header-right {
     gap: 10px;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .netflix-genre-container {
+    padding: 0 20px;
+  }
+
+  .netflix-filtered-content {
+    padding: 20px;
+  }
+
+  .netflix-grid-view {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 15px;
+  }
+
+  .netflix-grid-img {
+    height: 225px;
   }
 }
