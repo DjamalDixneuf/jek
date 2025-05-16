@@ -569,7 +569,6 @@ export default function UserPage() {
           <div className="netflix-featured-content">
             <h1 className="netflix-featured-title">{featuredMovie.title}</h1>
             <div className="netflix-featured-meta">
-              <span className="netflix-match">Recommandé à 98%</span>
               <span className="netflix-year">{featuredMovie.releaseYear}</span>
               <span className="netflix-duration">{featuredMovie.duration}</span>
               <span className="netflix-rating">★ {featuredMovie.rating || "N/A"}</span>
@@ -579,7 +578,9 @@ export default function UserPage() {
               <button className="netflix-play-button" onClick={() => openMovieModal(featuredMovie)}>
                 ▶ Lecture
               </button>
-              <button className="netflix-more-button">ℹ️ Plus d'infos</button>
+              <button className="netflix-more-button" onClick={() => openMovieModal(featuredMovie)}>
+                ℹ️ Plus d'infos
+              </button>
             </div>
           </div>
           <div className="netflix-featured-gradient"></div>
@@ -916,6 +917,28 @@ export default function UserPage() {
           <div id="movieDetails" className="netflix-modal-details"></div>
         </div>
       </div>
+
+      {/* Modal de profil */}
+      {isProfileModalOpen && (
+        <div className="netflix-profile-modal">
+          <div className="netflix-profile-modal-content">
+            <span className="netflix-modal-close" onClick={toggleProfileModal}>
+              &times;
+            </span>
+            <div className="netflix-profile-avatar-large">{userAvatar}</div>
+            <h2 style={{ textAlign: "center", marginBottom: "20px" }}>Modifier votre profil</h2>
+            <form onSubmit={updateProfile}>
+              <div className="netflix-form-group">
+                <label htmlFor="name">Nom d'utilisateur</label>
+                <input type="text" id="name" name="name" className="netflix-input" defaultValue={userName} required />
+              </div>
+              <button type="submit" className="netflix-button">
+                Enregistrer
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
