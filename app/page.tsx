@@ -108,10 +108,6 @@ export default function Home() {
     })
   }
 
-  // Modifier la fonction handleSignupSubmit pour ne plus stocker le nom d'utilisateur dans localStorage
-  // et s'assurer que la validation d'unicité est effectuée côté serveur
-
-  // Remplacer la fonction handleSignupSubmit par celle-ci:
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -123,6 +119,8 @@ export default function Home() {
         throw new Error("Le mot de passe doit contenir au moins 6 caractères")
       }
 
+      console.log("Attempting signup with:", { username: signupData.username, email: signupData.email })
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/signup`, {
         method: "POST",
         headers: {
@@ -131,7 +129,10 @@ export default function Home() {
         body: JSON.stringify(signupData),
       })
 
+      console.log("Signup response status:", response.status)
+
       const data = await response.json()
+      console.log("Signup response data:", data)
 
       if (!response.ok) {
         throw new Error(data.message || "Erreur d'inscription")
@@ -166,20 +167,21 @@ export default function Home() {
       // Rediriger vers la page utilisateur
       router.push("/user-page")
     } catch (error: any) {
+      console.error("Signup error:", error)
       setError(error.message || "Erreur d'inscription. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Modifier la fonction handleLoginSubmit pour ne plus stocker le nom d'utilisateur dans localStorage
-  // Remplacer la fonction handleLoginSubmit par celle-ci:
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
+      console.log("Attempting login with:", { username: loginData.username })
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/login`, {
         method: "POST",
         headers: {
@@ -188,12 +190,16 @@ export default function Home() {
         body: JSON.stringify(loginData),
       })
 
+      console.log("Login response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.error("Login error response:", errorData)
         throw new Error(errorData.message || "Erreur de connexion")
       }
 
       const data = await response.json()
+      console.log("Login success:", { username: data.username, role: data.role })
 
       // Stocker uniquement le token et le rôle
       localStorage.setItem("token", data.token)
@@ -207,6 +213,7 @@ export default function Home() {
         router.push("/user-page")
       }
     } catch (error: any) {
+      console.error("Login error:", error)
       setError(error.message || "Erreur de connexion. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
