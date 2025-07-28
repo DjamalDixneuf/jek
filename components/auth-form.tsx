@@ -1,14 +1,15 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { API_URL } from "@/lib/constants"
 
 export default function AuthForm() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("login")
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
 
   // Login form state
   const [loginData, setLoginData] = useState({
@@ -26,30 +27,52 @@ export default function AuthForm() {
   const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setLoginData((prev) => ({ ...prev, [name]: value }))
+    setError("") // Clear error when user types
   }
 
   const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setSignupData((prev) => ({ ...prev, [name]: value }))
+    setError("") // Clear error when user types
   }
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
     try {
-      // Simulate login
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(`${API_URL}/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: loginData.username,
+          password: loginData.password,
+        }),
+      })
 
-      // Redirect based on username
-      if (loginData.username === "djamalax19") {
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed")
+      }
+
+      // Store tokens in localStorage
+      localStorage.setItem("token", data.token)
+      localStorage.setItem("refreshToken", data.refreshToken)
+      localStorage.setItem("userRole", data.role)
+
+      // Redirect based on role
+      if (data.role === "admin") {
         router.push("/admin")
       } else {
         router.push("/dashboard")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error)
-      alert("Login failed. Please check your credentials.")
+      setError(error.message || "Login failed. Please check your credentials.")
     } finally {
       setIsLoading(false)
     }
@@ -58,15 +81,33 @@ export default function AuthForm() {
   const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setError("")
 
     try {
-      // Simulate signup
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await fetch(`${API_URL}/signup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: signupData.username,
+          email: signupData.email,
+          password: signupData.password,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed")
+      }
+
       alert("Account created successfully! You can now log in.")
       setActiveTab("login")
-    } catch (error) {
+      setSignupData({ username: "", email: "", password: "" })
+    } catch (error: any) {
       console.error("Signup failed:", error)
-      alert("Signup failed. Please try again.")
+      setError(error.message || "Signup failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -88,6 +129,10 @@ export default function AuthForm() {
           Sign Up
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md text-red-200 text-sm">{error}</div>
+      )}
 
       {activeTab === "login" && (
         <form onSubmit={handleLoginSubmit} className="space-y-4">
