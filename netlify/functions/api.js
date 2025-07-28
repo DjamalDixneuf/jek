@@ -70,7 +70,7 @@ async function connectToDatabase() {
 // Email transporter setup
 let transporter = null
 if (EMAIL_USER && EMAIL_PASS) {
-  transporter = nodemailer.createTransport({
+  transporter = nodemailer.createTransporter({
     service: "gmail",
     auth: {
       user: EMAIL_USER,
