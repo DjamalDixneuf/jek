@@ -155,12 +155,35 @@ app.post("/verify-signup", async (req, res) => {
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body
+
+    // Validation des champs requis
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" })
+    }
+
     const db = await connectToDatabase()
 
-    // Admin login - vous pouvez garder ceci ou le remplacer par un vrai compte admin dans la base de données
+    // Admin login - créer un userId fictif pour l'admin
     if (username === "djamalax19" && password === "Tiger19667") {
-      const token = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "1h" })
-      const refreshToken = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "7d" })
+      const adminUserId = "admin_" + Date.now() // ID fictif pour l'admin
+      const token = jwt.sign(
+        {
+          username,
+          role: "admin",
+          userId: adminUserId,
+        },
+        JWT_SECRET,
+        { expiresIn: "1h" },
+      )
+      const refreshToken = jwt.sign(
+        {
+          username,
+          role: "admin",
+          userId: adminUserId,
+        },
+        JWT_SECRET,
+        { expiresIn: "7d" },
+      )
       return res.json({ token, refreshToken, role: "admin" })
     }
 
@@ -178,19 +201,36 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" })
     }
 
-    const token = jwt.sign({ username: user.username, role: user.role, userId: user._id.toString() }, JWT_SECRET, {
-      expiresIn: "1h",
-    })
-    const refreshToken = jwt.sign(
-      { username: user.username, role: user.role, userId: user._id.toString() },
+    const token = jwt.sign(
+      {
+        username: user.username,
+        role: user.role,
+        userId: user._id.toString(),
+      },
       JWT_SECRET,
-      { expiresIn: "7d" },
+      {
+        expiresIn: "1h",
+      },
+    )
+    const refreshToken = jwt.sign(
+      {
+        username: user.username,
+        role: user.role,
+        userId: user._id.toString(),
+      },
+      JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
     )
 
     res.json({ token, refreshToken, role: user.role })
   } catch (error) {
     console.error("Login error:", error)
-    res.status(500).json({ message: "Server error during login" })
+    res.status(500).json({
+      message: "Server error during login",
+      error: error.message,
+    })
   }
 })
 
@@ -557,7 +597,15 @@ app.post("/refresh-token", async (req, res) => {
 
   try {
     const user = jwt.verify(refreshToken, JWT_SECRET)
-    const newToken = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET, { expiresIn: "1h" })
+    const newToken = jwt.sign(
+      {
+        username: user.username,
+        role: user.role,
+        userId: user.userId,
+      },
+      JWT_SECRET,
+      { expiresIn: "1h" },
+    )
 
     res.json({ token: newToken })
   } catch (error) {
@@ -569,6 +617,16 @@ app.post("/refresh-token", async (req, res) => {
 // Auth check route
 app.get("/check-auth", authenticateToken, async (req, res) => {
   try {
+    // Pour l'admin, retourner des infos fictives
+    if (req.user.username === "djamalax19") {
+      return res.json({
+        username: req.user.username,
+        email: "admin@jekle.com",
+        role: req.user.role,
+        createdAt: new Date(),
+      })
+    }
+
     const db = await connectToDatabase()
     const user = await db
       .collection("users")
@@ -598,6 +656,11 @@ app.post("/update-profile", authenticateToken, async (req, res) => {
 
     if (!username) {
       return res.status(400).json({ message: "Username is required" })
+    }
+
+    // Pour l'admin, ne pas permettre la modification
+    if (req.user.username === "djamalax19") {
+      return res.status(403).json({ message: "Admin profile cannot be modified" })
     }
 
     const db = await connectToDatabase()
