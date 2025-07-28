@@ -1023,7 +1023,10 @@ app.use((error, req, res, next) => {
 
 // ==================== SERVERLESS HANDLER ====================
 
-const handler = serverless(app)
+// Configuration pour Netlify Functions
+const handler = serverless(app, {
+  basePath: "/.netlify/functions/api",
+})
 
 exports.handler = async (event, context) => {
   // Ne pas attendre la boucle d'événements vide
@@ -1032,7 +1035,7 @@ exports.handler = async (event, context) => {
   console.log("=== NETLIFY FUNCTION CALLED ===")
   console.log("Method:", event.httpMethod)
   console.log("Path:", event.path)
-  console.log("Headers:", JSON.stringify(event.headers, null, 2))
+  console.log("Query:", event.queryStringParameters)
 
   // Gérer les requêtes OPTIONS pour CORS
   if (event.httpMethod === "OPTIONS") {
