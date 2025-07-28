@@ -7,7 +7,7 @@ const serverless = require("serverless-http")
 
 const app = express()
 
-// Configuration CORS plus permissive
+// Configuration CORS
 app.use(
   cors({
     origin: "*",
@@ -17,30 +17,27 @@ app.use(
   }),
 )
 
-// Middleware pour parser JSON
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true }))
 
 // Variables d'environnement
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/ezyzip"
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key-change-in-production"
+const MONGODB_URI = process.env.MONGODB_URI
+const JWT_SECRET = process.env.JWT_SECRET || "fallback-secret-key"
 
-console.log("API Starting...")
-console.log("MongoDB URI:", MONGODB_URI ? "✓ Configured" : "✗ Missing")
-console.log("JWT Secret:", JWT_SECRET ? "✓ Configured" : "✗ Missing")
+console.log("=== API INITIALIZATION ===")
+console.log("MongoDB URI:", MONGODB_URI ? "✓ Set" : "✗ Missing")
+console.log("JWT Secret:", JWT_SECRET ? "✓ Set" : "✗ Missing")
 
-// Cache de connexion MongoDB
+// Cache MongoDB
 let cachedClient = null
 let cachedDb = null
 
 async function connectToDatabase() {
   if (cachedClient && cachedDb) {
     try {
-      // Test de la connexion
       await cachedDb.admin().ping()
       return { client: cachedClient, db: cachedDb }
     } catch (error) {
-      console.log("Cached connection failed, reconnecting...")
       cachedClient = null
       cachedDb = null
     }
@@ -54,38 +51,35 @@ async function connectToDatabase() {
     })
 
     await client.connect()
-    const db = client.db("ezyzip")
-
-    // Test de la connexion
+    const db = client.db("jekledb")
     await db.admin().ping()
-    console.log("MongoDB connected successfully")
 
     cachedClient = client
     cachedDb = db
 
+    console.log("MongoDB connected successfully")
     return { client, db }
   } catch (error) {
-    console.error("MongoDB connection error:", error)
-    throw new Error("Impossible de se connecter à la base de données: " + error.message)
+    console.error("MongoDB connection failed:", error)
+    throw new Error("Database connection failed: " + error.message)
   }
 }
 
 // Middleware d'authentification
-const authenticateToken = async (req, res, next) => {
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"]
+  const token = authHeader && authHeader.split(" ")[1]
+
+  if (!token) {
+    return res.status(401).json({ message: "Token d'accès requis" })
+  }
+
   try {
-    const authHeader = req.headers["authorization"]
-    const token = authHeader && authHeader.split(" ")[1]
-
-    if (!token) {
-      return res.status(401).json({ message: "Token d'accès requis" })
-    }
-
     const decoded = jwt.verify(token, JWT_SECRET)
     req.user = decoded
     next()
   } catch (error) {
-    console.error("Token verification error:", error)
-    return res.status(403).json({ message: "Token invalide ou expiré" })
+    return res.status(403).json({ message: "Token invalide" })
   }
 }
 
@@ -111,32 +105,26 @@ const generateTokens = (user) => {
   return { token, refreshToken }
 }
 
+// ==================== ROUTES ====================
+
 // Route racine - Test de l'API
 app.get("/", (req, res) => {
   console.log("API root endpoint called")
   res.json({
-    message: "🎬 API EzyZip fonctionnelle !",
+    message: "🎬 API Jekle fonctionnelle !",
     timestamp: new Date().toISOString(),
     version: "1.0.0",
     status: "active",
-    endpoints: {
-      auth: [
-        "POST /login - Connexion utilisateur",
-        "POST /signup - Inscription utilisateur",
-        "POST /refresh-token - Rafraîchir le token",
-      ],
-      movies: [
-        "GET /movies - Liste des films",
-        "POST /movies - Ajouter un film (admin)",
-        "PUT /movies/:id - Modifier un film (admin)",
-        "DELETE /movies/:id - Supprimer un film (admin)",
-      ],
+    routes: {
+      auth: ["POST /login", "POST /signup", "POST /refresh-token", "GET /check-auth"],
+      movies: ["GET /movies", "POST /movies (admin)", "PUT /movies/:id (admin)", "DELETE /movies/:id (admin)"],
       requests: [
-        "GET /requests - Liste des demandes",
-        "POST /requests - Créer une demande",
-        "PUT /requests/:id - Traiter une demande (admin)",
+        "GET /movie-requests",
+        "POST /movie-requests",
+        "POST /movie-requests/:id/approve (admin)",
+        "POST /movie-requests/:id/reject (admin)",
       ],
-      admin: ["GET /users - Liste des utilisateurs (admin)", "GET /stats - Statistiques (admin)"],
+      admin: ["GET /admin/stats", "GET /admin/users", "POST /admin/users/:id/ban"],
     },
   })
 })
@@ -151,10 +139,8 @@ app.get("/health", async (req, res) => {
       status: "healthy",
       database: "connected",
       timestamp: new Date().toISOString(),
-      uptime: process.uptime(),
     })
   } catch (error) {
-    console.error("Health check failed:", error)
     res.status(500).json({
       status: "unhealthy",
       database: "disconnected",
@@ -164,14 +150,18 @@ app.get("/health", async (req, res) => {
   }
 })
 
+// ==================== AUTHENTICATION ROUTES ====================
+
 // Route de connexion
 app.post("/login", async (req, res) => {
   try {
-    console.log("Login attempt:", { username: req.body.username })
+    console.log("=== LOGIN ATTEMPT ===")
+    console.log("Request body:", { username: req.body.username, hasPassword: !!req.body.password })
 
     const { username, password } = req.body
 
     if (!username || !password) {
+      console.log("Missing credentials")
       return res.status(400).json({
         message: "Nom d'utilisateur et mot de passe requis",
       })
@@ -199,11 +189,10 @@ app.post("/login", async (req, res) => {
       })
     }
 
-    // Connexion à la base de données pour les utilisateurs normaux
+    // Connexion utilisateur normal
     const { db } = await connectToDatabase()
-    const usersCollection = db.collection("users")
+    const user = await db.collection("users").findOne({ username })
 
-    const user = await usersCollection.findOne({ username })
     if (!user) {
       console.log("User not found:", username)
       return res.status(401).json({
@@ -211,9 +200,10 @@ app.post("/login", async (req, res) => {
       })
     }
 
-    if (!user.isActive) {
+    if (user.isBanned) {
+      console.log("User is banned:", username)
       return res.status(403).json({
-        message: "Compte désactivé. Contactez l'administrateur.",
+        message: "Votre compte a été suspendu",
       })
     }
 
@@ -230,7 +220,7 @@ app.post("/login", async (req, res) => {
     const { token, refreshToken } = generateTokens(user)
 
     // Mettre à jour la dernière connexion
-    await usersCollection.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } })
+    await db.collection("users").updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } })
 
     res.json({
       message: "Connexion réussie",
@@ -251,11 +241,16 @@ app.post("/login", async (req, res) => {
 // Route d'inscription
 app.post("/signup", async (req, res) => {
   try {
-    console.log("Signup attempt:", { username: req.body.username, email: req.body.email })
+    console.log("=== SIGNUP ATTEMPT ===")
+    console.log("Request body:", {
+      username: req.body.username,
+      email: req.body.email,
+      hasPassword: !!req.body.password,
+    })
 
     const { username, email, password } = req.body
 
-    // Validation des données
+    // Validation
     if (!username || !email || !password) {
       return res.status(400).json({
         message: "Tous les champs sont requis",
@@ -274,7 +269,6 @@ app.post("/signup", async (req, res) => {
       })
     }
 
-    // Validation email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -282,7 +276,6 @@ app.post("/signup", async (req, res) => {
       })
     }
 
-    // Vérifier que ce n'est pas l'admin hardcodé
     if (username === "djamalax19") {
       return res.status(400).json({
         message: "Ce nom d'utilisateur est réservé",
@@ -290,10 +283,9 @@ app.post("/signup", async (req, res) => {
     }
 
     const { db } = await connectToDatabase()
-    const usersCollection = db.collection("users")
 
     // Vérifier si l'utilisateur existe déjà
-    const existingUser = await usersCollection.findOne({
+    const existingUser = await db.collection("users").findOne({
       $or: [{ username }, { email }],
     })
 
@@ -319,12 +311,13 @@ app.post("/signup", async (req, res) => {
       email,
       password: hashedPassword,
       role: "user",
-      isActive: true,
+      isBanned: false,
+      isVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
 
-    const result = await usersCollection.insertOne(newUser)
+    const result = await db.collection("users").insertOne(newUser)
     console.log("User created successfully:", username, "ID:", result.insertedId)
 
     const createdUser = {
@@ -393,6 +386,10 @@ app.get("/check-auth", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" })
     }
 
+    if (user.isBanned) {
+      return res.status(403).json({ message: "Compte suspendu" })
+    }
+
     res.json({
       username: user.username,
       email: user.email,
@@ -405,114 +402,178 @@ app.get("/check-auth", authenticateToken, async (req, res) => {
   }
 })
 
-// Routes pour les films
+// ==================== MOVIES ROUTES ====================
+
+// Récupérer les films
 app.get("/movies", authenticateToken, async (req, res) => {
   try {
-    const { db } = await connectToDatabase()
-    const moviesCollection = db.collection("movies")
+    const { genre, type, search, page = 1, limit = 20 } = req.query
+    const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit)
 
-    const movies = await moviesCollection
-      .find({ isActive: { $ne: false } })
+    const { db } = await connectToDatabase()
+
+    // Construire le filtre
+    const filter = {}
+
+    if (genre && genre !== "all") {
+      filter.genre = { $in: Array.isArray(genre) ? genre : [genre] }
+    }
+
+    if (type && type !== "all") {
+      filter.type = type
+    }
+
+    if (search) {
+      filter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+        { genre: { $regex: search, $options: "i" } },
+      ]
+    }
+
+    const total = await db.collection("movies").countDocuments(filter)
+
+    const movies = await db
+      .collection("movies")
+      .find(filter)
       .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number.parseInt(limit))
       .toArray()
 
-    res.json(movies)
+    res.json({
+      movies,
+      pagination: {
+        currentPage: Number.parseInt(page),
+        totalPages: Math.ceil(total / Number.parseInt(limit)),
+        totalItems: total,
+        itemsPerPage: Number.parseInt(limit),
+      },
+    })
   } catch (error) {
     console.error("Movies fetch error:", error)
     res.status(500).json({ message: "Erreur lors de la récupération des films" })
   }
 })
 
-app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { title, description, genre, year, driveUrl, type, imageUrl } = req.body
-
-    if (!title || !driveUrl) {
-      return res.status(400).json({
-        message: "Titre et URL Google Drive requis",
-      })
-    }
-
-    // Transformer l'URL Google Drive pour l'embed
-    let transformedUrl = driveUrl
-    if (driveUrl.includes("/file/d/")) {
-      const fileId = driveUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)?.[1]
-      if (fileId) {
-        transformedUrl = `https://drive.google.com/file/d/${fileId}/preview`
-      }
-    }
-
-    const { db } = await connectToDatabase()
-    const moviesCollection = db.collection("movies")
-
-    const newMovie = {
-      title,
-      description: description || "",
-      genre: genre || "Non spécifié",
-      year: Number.parseInt(year) || new Date().getFullYear(),
-      driveUrl: transformedUrl,
-      originalUrl: driveUrl,
-      type: type || "movie",
-      imageUrl: imageUrl || "/placeholder.svg?height=300&width=200",
-      isActive: true,
-      createdAt: new Date(),
-      createdBy: req.user.id,
-    }
-
-    const result = await moviesCollection.insertOne(newMovie)
-
-    res.status(201).json({
-      message: "Film ajouté avec succès",
-      movie: { ...newMovie, _id: result.insertedId },
-    })
-  } catch (error) {
-    console.error("Movie creation error:", error)
-    res.status(500).json({ message: "Erreur lors de l'ajout du film" })
-  }
-})
-
-app.put("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
+// Récupérer un film par ID
+app.get("/movies/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params
-    const updates = { ...req.body }
 
     if (!ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de film invalide" })
     }
 
-    // Transformer l'URL Google Drive si elle est modifiée
-    if (updates.driveUrl && updates.driveUrl.includes("/file/d/")) {
-      const fileId = updates.driveUrl.match(/\/file\/d\/([a-zA-Z0-9-_]+)/)?.[1]
-      if (fileId) {
-        updates.driveUrl = `https://drive.google.com/file/d/${fileId}/preview`
-      }
+    const { db } = await connectToDatabase()
+    const movie = await db.collection("movies").findOne({ _id: new ObjectId(id) })
+
+    if (!movie) {
+      return res.status(404).json({ message: "Film non trouvé" })
+    }
+
+    res.json(movie)
+  } catch (error) {
+    console.error("Movie fetch error:", error)
+    res.status(500).json({ message: "Erreur lors de la récupération du film" })
+  }
+})
+
+// Ajouter un film (Admin seulement)
+app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { title, type, duration, description, genre, releaseYear, thumbnailUrl, videoUrl, episodes } = req.body
+
+    const requiredFields = ["title", "type", "duration", "description", "genre", "releaseYear", "thumbnailUrl"]
+    const missingFields = requiredFields.filter((field) => !req.body[field])
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: "Champs manquants",
+        missingFields,
+      })
+    }
+
+    if (!["film", "série"].includes(type)) {
+      return res.status(400).json({ message: "Le type doit être 'film' ou 'série'" })
+    }
+
+    if (type === "film" && !videoUrl) {
+      return res.status(400).json({ message: "URL vidéo requise pour un film" })
+    }
+
+    if (type === "série" && (!episodes || !Array.isArray(episodes))) {
+      return res.status(400).json({ message: "Liste d'épisodes requise pour une série" })
     }
 
     const { db } = await connectToDatabase()
-    const moviesCollection = db.collection("movies")
 
-    const result = await moviesCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          ...updates,
-          updatedAt: new Date(),
-          updatedBy: req.user.id,
-        },
-      },
-    )
+    // Vérifier si le film existe déjà
+    const existingMovie = await db.collection("movies").findOne({ title, releaseYear })
+    if (existingMovie) {
+      return res.status(400).json({ message: "Un film avec ce titre et cette année existe déjà" })
+    }
+
+    const movieDoc = {
+      ...req.body,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      addedBy: req.user.username,
+    }
+
+    const result = await db.collection("movies").insertOne(movieDoc)
+    const insertedMovie = await db.collection("movies").findOne({ _id: result.insertedId })
+
+    console.log(`Movie "${title}" added by ${req.user.username}`)
+    res.status(201).json({
+      message: "Film ajouté avec succès",
+      movie: insertedMovie,
+    })
+  } catch (error) {
+    console.error("Movie creation error:", error)
+    res.status(500).json({
+      message: "Erreur lors de l'ajout du film",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    })
+  }
+})
+
+// Modifier un film (Admin seulement)
+app.put("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de film invalide" })
+    }
+
+    const { db } = await connectToDatabase()
+
+    const updateDoc = {
+      ...req.body,
+      updatedAt: new Date(),
+      lastModifiedBy: req.user.username,
+    }
+
+    const result = await db.collection("movies").updateOne({ _id: new ObjectId(id) }, { $set: updateDoc })
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "Film non trouvé" })
     }
 
-    res.json({ message: "Film mis à jour avec succès" })
+    const updatedMovie = await db.collection("movies").findOne({ _id: new ObjectId(id) })
+
+    res.json({
+      message: "Film mis à jour avec succès",
+      movie: updatedMovie,
+    })
   } catch (error) {
     console.error("Movie update error:", error)
     res.status(500).json({ message: "Erreur lors de la mise à jour du film" })
   }
 })
 
+// Supprimer un film (Admin seulement)
 app.delete("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params
@@ -522,23 +583,15 @@ app.delete("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
     }
 
     const { db } = await connectToDatabase()
-    const moviesCollection = db.collection("movies")
 
-    const result = await moviesCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          isActive: false,
-          deletedAt: new Date(),
-          deletedBy: req.user.id,
-        },
-      },
-    )
-
-    if (result.matchedCount === 0) {
+    const movie = await db.collection("movies").findOne({ _id: new ObjectId(id) })
+    if (!movie) {
       return res.status(404).json({ message: "Film non trouvé" })
     }
 
+    const result = await db.collection("movies").deleteOne({ _id: new ObjectId(id) })
+
+    console.log(`Movie "${movie.title}" deleted by ${req.user.username}`)
     res.json({ message: "Film supprimé avec succès" })
   } catch (error) {
     console.error("Movie deletion error:", error)
@@ -546,81 +599,108 @@ app.delete("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-// Routes pour les demandes de films
-app.get("/requests", authenticateToken, async (req, res) => {
+// ==================== MOVIE REQUESTS ROUTES ====================
+
+// Récupérer les demandes de films
+app.get("/movie-requests", authenticateToken, async (req, res) => {
   try {
     const { db } = await connectToDatabase()
-    const requestsCollection = db.collection("movieRequests")
+    let movieRequests
 
-    const filter = req.user.role === "admin" ? {} : { userId: req.user.id }
-    const requests = await requestsCollection.find(filter).sort({ createdAt: -1 }).toArray()
+    if (req.user.role === "admin") {
+      movieRequests = await db.collection("movieRequests").find({}).sort({ createdAt: -1 }).toArray()
+    } else {
+      movieRequests = await db
+        .collection("movieRequests")
+        .find({ userId: req.user.username })
+        .sort({ createdAt: -1 })
+        .toArray()
+    }
 
-    res.json(requests)
+    res.json(movieRequests)
   } catch (error) {
-    console.error("Requests fetch error:", error)
+    console.error("Movie requests fetch error:", error)
     res.status(500).json({ message: "Erreur lors de la récupération des demandes" })
   }
 })
 
-app.post("/requests", authenticateToken, async (req, res) => {
+// Créer une demande de film
+app.post("/movie-requests", authenticateToken, async (req, res) => {
   try {
-    const { title, description, genre, year, imdbLink } = req.body
+    const { title, imdbLink, description } = req.body
 
-    if (!title) {
-      return res.status(400).json({ message: "Titre requis" })
+    if (!title || !imdbLink) {
+      return res.status(400).json({
+        message: "Titre et lien IMDB sont requis",
+      })
+    }
+
+    // Valider le lien IMDB
+    const imdbRegex = /^https?:\/\/(www\.)?imdb\.com\/title\/tt\d+/
+    if (!imdbRegex.test(imdbLink)) {
+      return res.status(400).json({
+        message: "Lien IMDB invalide. Format attendu: https://www.imdb.com/title/ttXXXXXXX",
+      })
     }
 
     const { db } = await connectToDatabase()
-    const requestsCollection = db.collection("movieRequests")
+
+    // Vérifier si l'utilisateur a déjà demandé ce film
+    const existingRequest = await db.collection("movieRequests").findOne({
+      userId: req.user.username,
+      title,
+      status: { $in: ["pending", "approved"] },
+    })
+
+    if (existingRequest) {
+      return res.status(400).json({
+        message: "Vous avez déjà fait une demande pour ce film",
+      })
+    }
 
     const newRequest = {
       title,
+      imdbLink,
       description: description || "",
-      genre: genre || "",
-      year: year ? Number.parseInt(year) : null,
-      imdbLink: imdbLink || "",
-      userId: req.user.id,
-      username: req.user.username,
+      userId: req.user.username,
       status: "pending",
       createdAt: new Date(),
+      updatedAt: new Date(),
     }
 
-    const result = await requestsCollection.insertOne(newRequest)
+    const result = await db.collection("movieRequests").insertOne(newRequest)
+    const insertedRequest = await db.collection("movieRequests").findOne({ _id: result.insertedId })
 
+    console.log(`Movie request "${title}" created by ${req.user.username}`)
     res.status(201).json({
-      message: "Demande envoyée avec succès",
-      request: { ...newRequest, _id: result.insertedId },
+      message: "Demande créée avec succès",
+      request: insertedRequest,
     })
   } catch (error) {
-    console.error("Request creation error:", error)
+    console.error("Movie request creation error:", error)
     res.status(500).json({ message: "Erreur lors de la création de la demande" })
   }
 })
 
-app.put("/requests/:id", authenticateToken, requireAdmin, async (req, res) => {
+// Approuver une demande de film (Admin seulement)
+app.post("/movie-requests/:requestId/approve", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params
-    const { status, adminNote } = req.body
+    const { requestId } = req.params
 
-    if (!ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(requestId)) {
       return res.status(400).json({ message: "ID de demande invalide" })
     }
 
-    if (!["pending", "approved", "rejected"].includes(status)) {
-      return res.status(400).json({ message: "Statut invalide" })
-    }
-
     const { db } = await connectToDatabase()
-    const requestsCollection = db.collection("movieRequests")
 
-    const result = await requestsCollection.updateOne(
-      { _id: new ObjectId(id) },
+    const result = await db.collection("movieRequests").updateOne(
+      { _id: new ObjectId(requestId) },
       {
         $set: {
-          status,
-          adminNote: adminNote || "",
-          processedAt: new Date(),
-          processedBy: req.user.id,
+          status: "approved",
+          updatedAt: new Date(),
+          approvedBy: req.user.username,
+          approvedAt: new Date(),
         },
       },
     )
@@ -629,92 +709,269 @@ app.put("/requests/:id", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: "Demande non trouvée" })
     }
 
-    res.json({ message: "Demande mise à jour avec succès" })
+    console.log(`Movie request ${requestId} approved by ${req.user.username}`)
+    res.json({ message: "Demande approuvée avec succès" })
   } catch (error) {
-    console.error("Request update error:", error)
-    res.status(500).json({ message: "Erreur lors de la mise à jour de la demande" })
+    console.error("Movie request approval error:", error)
+    res.status(500).json({ message: "Erreur lors de l'approbation de la demande" })
   }
 })
 
-// Routes admin pour la gestion des utilisateurs
-app.get("/users", authenticateToken, requireAdmin, async (req, res) => {
+// Rejeter une demande de film (Admin seulement)
+app.post("/movie-requests/:requestId/reject", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { requestId } = req.params
+    const { reason } = req.body
+
+    if (!ObjectId.isValid(requestId)) {
+      return res.status(400).json({ message: "ID de demande invalide" })
+    }
+
+    const { db } = await connectToDatabase()
+
+    const result = await db.collection("movieRequests").updateOne(
+      { _id: new ObjectId(requestId) },
+      {
+        $set: {
+          status: "rejected",
+          updatedAt: new Date(),
+          rejectedBy: req.user.username,
+          rejectedAt: new Date(),
+          rejectionReason: reason || "Aucune raison fournie",
+        },
+      },
+    )
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Demande non trouvée" })
+    }
+
+    console.log(`Movie request ${requestId} rejected by ${req.user.username}`)
+    res.json({ message: "Demande rejetée avec succès" })
+  } catch (error) {
+    console.error("Movie request rejection error:", error)
+    res.status(500).json({ message: "Erreur lors du rejet de la demande" })
+  }
+})
+
+// Supprimer une demande de film
+app.delete("/movie-requests/:requestId", authenticateToken, async (req, res) => {
+  try {
+    const { requestId } = req.params
+
+    if (!ObjectId.isValid(requestId)) {
+      return res.status(400).json({ message: "ID de demande invalide" })
+    }
+
+    const { db } = await connectToDatabase()
+
+    // Vérifier si l'utilisateur possède la demande ou est admin
+    const filter = { _id: new ObjectId(requestId) }
+    if (req.user.role !== "admin") {
+      filter.userId = req.user.username
+    }
+
+    const result = await db.collection("movieRequests").deleteOne(filter)
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Demande non trouvée ou non autorisée" })
+    }
+
+    res.json({ message: "Demande supprimée avec succès" })
+  } catch (error) {
+    console.error("Movie request deletion error:", error)
+    res.status(500).json({ message: "Erreur lors de la suppression de la demande" })
+  }
+})
+
+// ==================== ADMIN ROUTES ====================
+
+// Statistiques admin
+app.get("/admin/stats", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { db } = await connectToDatabase()
-    const usersCollection = db.collection("users")
 
-    const users = await usersCollection
-      .find({ role: { $ne: "admin" } }, { projection: { password: 0 } })
+    // Statistiques utilisateurs
+    const totalUsers = await db.collection("users").countDocuments()
+    const bannedUsers = await db.collection("users").countDocuments({ isBanned: true })
+
+    // Nouveaux utilisateurs dans les 7 derniers jours
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    const newUsers = await db.collection("users").countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    })
+
+    // Statistiques contenu
+    const totalMovies = await db.collection("movies").countDocuments()
+    const totalFilms = await db.collection("movies").countDocuments({ type: "film" })
+    const totalSeries = await db.collection("movies").countDocuments({ type: "série" })
+
+    // Statistiques demandes
+    const totalRequests = await db.collection("movieRequests").countDocuments()
+    const pendingRequests = await db.collection("movieRequests").countDocuments({ status: "pending" })
+    const approvedRequests = await db.collection("movieRequests").countDocuments({ status: "approved" })
+    const rejectedRequests = await db.collection("movieRequests").countDocuments({ status: "rejected" })
+
+    // Activité récente
+    const recentUsers = await db
+      .collection("users")
+      .find({}, { projection: { password: 0 } })
       .sort({ createdAt: -1 })
+      .limit(5)
       .toArray()
 
-    res.json(users)
+    const recentRequests = await db.collection("movieRequests").find({}).sort({ createdAt: -1 }).limit(5).toArray()
+
+    res.json({
+      users: {
+        total: totalUsers,
+        new: newUsers,
+        banned: bannedUsers,
+        active: totalUsers - bannedUsers,
+      },
+      content: {
+        total: totalMovies,
+        films: totalFilms,
+        series: totalSeries,
+      },
+      requests: {
+        total: totalRequests,
+        pending: pendingRequests,
+        approved: approvedRequests,
+        rejected: rejectedRequests,
+      },
+      recent: {
+        users: recentUsers,
+        requests: recentRequests,
+      },
+    })
+  } catch (error) {
+    console.error("Admin stats error:", error)
+    res.status(500).json({ message: "Erreur lors de la récupération des statistiques" })
+  }
+})
+
+// Récupérer tous les utilisateurs (Admin seulement)
+app.get("/admin/users", authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, search, status } = req.query
+    const skip = (Number.parseInt(page) - 1) * Number.parseInt(limit)
+
+    const { db } = await connectToDatabase()
+
+    // Construire le filtre
+    const filter = {}
+
+    if (search) {
+      filter.$or = [{ username: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }]
+    }
+
+    if (status === "banned") {
+      filter.isBanned = true
+    } else if (status === "active") {
+      filter.isBanned = { $ne: true }
+    }
+
+    const total = await db.collection("users").countDocuments(filter)
+
+    const users = await db
+      .collection("users")
+      .find(filter, { projection: { password: 0 } })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(Number.parseInt(limit))
+      .toArray()
+
+    res.json({
+      users,
+      pagination: {
+        currentPage: Number.parseInt(page),
+        totalPages: Math.ceil(total / Number.parseInt(limit)),
+        totalItems: total,
+        itemsPerPage: Number.parseInt(limit),
+      },
+    })
   } catch (error) {
     console.error("Users fetch error:", error)
     res.status(500).json({ message: "Erreur lors de la récupération des utilisateurs" })
   }
 })
 
-app.put("/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+// Bannir/Débannir un utilisateur (Admin seulement)
+app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params
-    const { isActive } = req.body
+    const { userId } = req.params
+    const { ban, reason } = req.body
 
-    if (!ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "ID utilisateur invalide" })
     }
 
-    const { db } = await connectToDatabase()
-    const usersCollection = db.collection("users")
+    if (typeof ban !== "boolean") {
+      return res.status(400).json({ message: "Le paramètre 'ban' doit être un booléen" })
+    }
 
-    const result = await usersCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          isActive: Boolean(isActive),
-          updatedAt: new Date(),
-          updatedBy: req.user.id,
-        },
-      },
-    )
+    const { db } = await connectToDatabase()
+
+    const updateDoc = {
+      isBanned: ban,
+      updatedAt: new Date(),
+      lastModifiedBy: req.user.username,
+    }
+
+    if (ban && reason) {
+      updateDoc.banReason = reason
+      updateDoc.bannedAt = new Date()
+    } else if (!ban) {
+      updateDoc.$unset = { banReason: "", bannedAt: "" }
+    }
+
+    const result = await db
+      .collection("users")
+      .updateOne(
+        { _id: new ObjectId(userId) },
+        ban ? { $set: updateDoc } : { $set: updateDoc, $unset: updateDoc.$unset },
+      )
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "Utilisateur non trouvé" })
     }
 
-    const action = isActive ? "activé" : "désactivé"
+    const action = ban ? "banni" : "débanni"
+    console.log(`User ${userId} ${action} by ${req.user.username}`)
+
     res.json({ message: `Utilisateur ${action} avec succès` })
   } catch (error) {
-    console.error("User update error:", error)
-    res.status(500).json({ message: "Erreur lors de la mise à jour de l'utilisateur" })
+    console.error("User ban error:", error)
+    res.status(500).json({ message: "Erreur lors de la mise à jour du statut de l'utilisateur" })
   }
 })
 
-app.delete("/users/:id", authenticateToken, requireAdmin, async (req, res) => {
+// Supprimer un utilisateur (Admin seulement)
+app.delete("/admin/users/:userId", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { id } = req.params
+    const { userId } = req.params
 
-    if (!ObjectId.isValid(id)) {
+    if (!ObjectId.isValid(userId)) {
       return res.status(400).json({ message: "ID utilisateur invalide" })
     }
 
     const { db } = await connectToDatabase()
-    const usersCollection = db.collection("users")
 
-    const result = await usersCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: {
-          isActive: false,
-          deletedAt: new Date(),
-          deletedBy: req.user.id,
-        },
-      },
-    )
-
-    if (result.matchedCount === 0) {
+    // Récupérer les infos utilisateur avant suppression
+    const user = await db.collection("users").findOne({ _id: new ObjectId(userId) })
+    if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" })
     }
 
+    // Supprimer les demandes de films de l'utilisateur
+    await db.collection("movieRequests").deleteMany({ userId: user.username })
+
+    // Supprimer l'utilisateur
+    const result = await db.collection("users").deleteOne({ _id: new ObjectId(userId) })
+
+    console.log(`User ${user.username} deleted by ${req.user.username}`)
     res.json({ message: "Utilisateur supprimé avec succès" })
   } catch (error) {
     console.error("User deletion error:", error)
@@ -722,41 +979,40 @@ app.delete("/users/:id", authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-// Route pour les statistiques admin
-app.get("/stats", authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const { db } = await connectToDatabase()
+// ==================== ERROR HANDLING ====================
 
-    const [totalUsers, activeUsers, totalMovies, totalRequests, pendingRequests] = await Promise.all([
-      db.collection("users").countDocuments(),
-      db.collection("users").countDocuments({ isActive: true }),
-      db.collection("movies").countDocuments({ isActive: { $ne: false } }),
-      db.collection("movieRequests").countDocuments(),
-      db.collection("movieRequests").countDocuments({ status: "pending" }),
-    ])
-
-    res.json({
-      users: {
-        total: totalUsers,
-        active: activeUsers,
-        inactive: totalUsers - activeUsers,
-      },
-      movies: {
-        total: totalMovies,
-      },
-      requests: {
-        total: totalRequests,
-        pending: pendingRequests,
-        processed: totalRequests - pendingRequests,
-      },
-    })
-  } catch (error) {
-    console.error("Stats fetch error:", error)
-    res.status(500).json({ message: "Erreur lors de la récupération des statistiques" })
-  }
+// Gestionnaire d'erreurs 404
+app.use("*", (req, res) => {
+  console.log("Route not found:", req.method, req.originalUrl)
+  res.status(404).json({
+    message: "Route non trouvée",
+    path: req.originalUrl,
+    method: req.method,
+    availableRoutes: [
+      "GET /",
+      "GET /health",
+      "POST /login",
+      "POST /signup",
+      "POST /refresh-token",
+      "GET /check-auth",
+      "GET /movies",
+      "POST /movies",
+      "PUT /movies/:id",
+      "DELETE /movies/:id",
+      "GET /movie-requests",
+      "POST /movie-requests",
+      "POST /movie-requests/:id/approve",
+      "POST /movie-requests/:id/reject",
+      "DELETE /movie-requests/:id",
+      "GET /admin/stats",
+      "GET /admin/users",
+      "POST /admin/users/:id/ban",
+      "DELETE /admin/users/:id",
+    ],
+  })
 })
 
-// Gestion des erreurs globales
+// Gestionnaire d'erreurs global
 app.use((error, req, res, next) => {
   console.error("Global error:", error)
   res.status(500).json({
@@ -765,31 +1021,39 @@ app.use((error, req, res, next) => {
   })
 })
 
-// Gestion des routes non trouvées
-app.use("*", (req, res) => {
-  console.log("Route not found:", req.method, req.originalUrl)
-  res.status(404).json({
-    message: "Route non trouvée",
-    path: req.originalUrl,
-    method: req.method,
-  })
-})
+// ==================== SERVERLESS HANDLER ====================
 
-// Export pour Netlify Functions
 const handler = serverless(app)
 
 exports.handler = async (event, context) => {
-  // Éviter que la fonction attende la boucle d'événements vide
+  // Ne pas attendre la boucle d'événements vide
   context.callbackWaitsForEmptyEventLoop = false
 
-  console.log("Function called:", event.httpMethod, event.path)
+  console.log("=== NETLIFY FUNCTION CALLED ===")
+  console.log("Method:", event.httpMethod)
+  console.log("Path:", event.path)
+  console.log("Headers:", JSON.stringify(event.headers, null, 2))
+
+  // Gérer les requêtes OPTIONS pour CORS
+  if (event.httpMethod === "OPTIONS") {
+    return {
+      statusCode: 200,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Max-Age": "86400",
+      },
+      body: "",
+    }
+  }
 
   try {
     const result = await handler(event, context)
-    console.log("Function result:", result.statusCode)
+    console.log("Function result status:", result.statusCode)
     return result
   } catch (error) {
-    console.error("Function error:", error)
+    console.error("Function handler error:", error)
     return {
       statusCode: 500,
       headers: {
@@ -799,6 +1063,7 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         message: "Erreur de fonction",
         error: error.message,
+        timestamp: new Date().toISOString(),
       }),
     }
   }
