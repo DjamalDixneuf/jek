@@ -11,7 +11,7 @@ const app = express()
 // Middleware
 app.use(
   cors({
-    origin: "*", // Vous pouvez restreindre cela à votre domaine en production
+    origin: "*",
     credentials: true,
   }),
 )
@@ -53,11 +53,6 @@ async function connectToDatabase() {
     return db
   } catch (error) {
     console.error("MongoDB connection error:", error)
-    if (error.name === "MongoNetworkError") {
-      console.error("Network error connecting to MongoDB. Check your connection and MONGODB_URI.")
-    } else if (error.name === "MongoServerSelectionError") {
-      console.error("Could not select MongoDB server. The server might be down or the URI might be incorrect.")
-    }
     throw error
   }
 }
@@ -98,8 +93,12 @@ const isAdmin = (req, res, next) => {
   next()
 }
 
+// Test route
+app.get("/", (req, res) => {
+  res.json({ message: "API is working!" })
+})
+
 // User Routes
-// Nouvelle route d'inscription sans vérification par email
 app.post("/signup", async (req, res) => {
   try {
     const { username, email, password } = req.body
@@ -120,7 +119,6 @@ app.post("/signup", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10)
 
-    // Créer directement l'utilisateur sans vérification par email
     const newUser = {
       username,
       email,
@@ -131,11 +129,10 @@ app.post("/signup", async (req, res) => {
     }
 
     await db.collection("users").insertOne(newUser)
-    console.log(`User ${username} created successfully (no email verification)`)
+    console.log(`User ${username} created successfully`)
 
     res.status(201).json({
       message: "Account created successfully. You can now log in.",
-      skipVerification: true,
     })
   } catch (error) {
     console.error("Signup error:", error)
@@ -146,22 +143,21 @@ app.post("/signup", async (req, res) => {
   }
 })
 
-// Garder la route de vérification pour compatibilité, mais elle ne sera pas utilisée
-app.post("/verify-signup", async (req, res) => {
-  res.status(200).json({ message: "Verification not required" })
-})
-
-// Remplacer la fonction de login pour utiliser la vraie base de données
 app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body
+
+    if (!username || !password) {
+      return res.status(400).json({ message: "Username and password are required" })
+    }
+
     const db = await connectToDatabase()
 
-    // Admin login - vous pouvez garder ceci ou le remplacer par un vrai compte admin dans la base de données
+    // Admin login hardcoded
     if (username === "djamalax19" && password === "Tiger19667") {
       const token = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "1h" })
       const refreshToken = jwt.sign({ username, role: "admin" }, JWT_SECRET, { expiresIn: "7d" })
-      return res.json({ token, refreshToken, role: "admin" })
+      return res.json({ token, refreshToken, role: "admin", username })
     }
 
     const user = await db.collection("users").findOne({ username })
@@ -187,7 +183,7 @@ app.post("/login", async (req, res) => {
       { expiresIn: "7d" },
     )
 
-    res.json({ token, refreshToken, role: user.role })
+    res.json({ token, refreshToken, role: user.role, username: user.username })
   } catch (error) {
     console.error("Login error:", error)
     res.status(500).json({ message: "Server error during login" })
@@ -195,7 +191,6 @@ app.post("/login", async (req, res) => {
 })
 
 // Movie Routes
-// Améliorer la route pour récupérer les films avec pagination et filtrage
 app.get("/movies", authenticateToken, async (req, res) => {
   try {
     const { genre, type, search, page = 1, limit = 20 } = req.query
@@ -203,7 +198,6 @@ app.get("/movies", authenticateToken, async (req, res) => {
 
     const db = await connectToDatabase()
 
-    // Construire le filtre de recherche
     const filter = {}
 
     if (genre) {
@@ -218,10 +212,8 @@ app.get("/movies", authenticateToken, async (req, res) => {
       filter.$or = [{ title: { $regex: search, $options: "i" } }, { description: { $regex: search, $options: "i" } }]
     }
 
-    // Compter le nombre total de films correspondant au filtre
     const total = await db.collection("movies").countDocuments(filter)
 
-    // Récupérer les films avec pagination
     const movies = await db
       .collection("movies")
       .find(filter)
@@ -230,7 +222,6 @@ app.get("/movies", authenticateToken, async (req, res) => {
       .limit(Number.parseInt(limit))
       .toArray()
 
-    // Transform Google Drive URLs for all movies
     const transformedMovies = movies.map((movie) => {
       if (movie.type === "film" && movie.videoUrl) {
         movie.videoUrl = getEmbedUrl(movie.videoUrl)
@@ -243,7 +234,6 @@ app.get("/movies", authenticateToken, async (req, res) => {
       return movie
     })
 
-    // Renvoyer directement le tableau de films au lieu d'un objet contenant le tableau
     res.json(transformedMovies)
   } catch (error) {
     console.error("Error fetching movies:", error)
@@ -251,23 +241,17 @@ app.get("/movies", authenticateToken, async (req, res) => {
   }
 })
 
-// Ajouter une route pour obtenir les statistiques pour le tableau de bord admin
+// Admin stats
 app.get("/admin/stats", authenticateToken, isAdmin, async (req, res) => {
   try {
     const db = await connectToDatabase()
 
-    // Obtenir le nombre total d'utilisateurs
     const userCount = await db.collection("users").countDocuments()
-
-    // Obtenir le nombre total de films et séries
     const movieCount = await db.collection("movies").countDocuments()
     const filmCount = await db.collection("movies").countDocuments({ type: "film" })
     const seriesCount = await db.collection("movies").countDocuments({ type: "série" })
-
-    // Obtenir le nombre de demandes en attente
     const pendingRequestCount = await db.collection("movieRequests").countDocuments({ status: "pending" })
 
-    // Obtenir les utilisateurs récemment inscrits (7 derniers jours)
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const newUserCount = await db.collection("users").countDocuments({
@@ -294,7 +278,7 @@ app.get("/admin/stats", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
-// Ajouter une route pour obtenir un film spécifique par ID
+// Movie by ID
 app.get("/movies/:id", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params
@@ -306,7 +290,6 @@ app.get("/movies/:id", authenticateToken, async (req, res) => {
       return res.status(404).json({ message: "Movie not found" })
     }
 
-    // Transform Google Drive URL if needed
     if (movie.type === "film" && movie.videoUrl) {
       movie.videoUrl = getEmbedUrl(movie.videoUrl)
     } else if (movie.type === "série" && movie.episodes) {
@@ -323,13 +306,13 @@ app.get("/movies/:id", authenticateToken, async (req, res) => {
   }
 })
 
+// Add movie
 app.post("/movies", authenticateToken, isAdmin, async (req, res) => {
   try {
     const db = await connectToDatabase()
 
     const { title, type, duration, description, genre, releaseYear, thumbnailUrl } = req.body
 
-    // Validate required fields
     if (!title || !type || !duration || !description || !genre || !releaseYear || !thumbnailUrl) {
       return res.status(400).json({
         message: "Missing required fields",
@@ -337,17 +320,14 @@ app.post("/movies", authenticateToken, isAdmin, async (req, res) => {
       })
     }
 
-    // Create movie document
     const movieDoc = {
       ...req.body,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
 
-    // Insert movie
     const result = await db.collection("movies").insertOne(movieDoc)
 
-    // Get inserted movie
     const insertedMovie = await db.collection("movies").findOne({
       _id: result.insertedId,
     })
@@ -362,6 +342,7 @@ app.post("/movies", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
+// Delete movie
 app.delete("/movies/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
     const db = await connectToDatabase()
@@ -429,6 +410,7 @@ app.post("/movie-requests", authenticateToken, async (req, res) => {
   }
 })
 
+// Approve request
 app.post("/movie-requests/:requestId/approve", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { requestId } = req.params
@@ -456,6 +438,7 @@ app.post("/movie-requests/:requestId/approve", authenticateToken, isAdmin, async
   }
 })
 
+// Reject request
 app.post("/movie-requests/:requestId/reject", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { requestId } = req.params
@@ -499,6 +482,7 @@ app.get("/admin/users", authenticateToken, isAdmin, async (req, res) => {
   }
 })
 
+// Ban/unban user
 app.post("/admin/users/:userId/ban", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params
@@ -527,6 +511,7 @@ app.post("/admin/users/:userId/ban", authenticateToken, isAdmin, async (req, res
   }
 })
 
+// Delete user
 app.delete("/admin/users/:userId", authenticateToken, isAdmin, async (req, res) => {
   try {
     const { userId } = req.params
@@ -590,7 +575,7 @@ app.get("/check-auth", authenticateToken, async (req, res) => {
   }
 })
 
-// Route pour mettre à jour le profil utilisateur
+// Update profile
 app.post("/update-profile", authenticateToken, async (req, res) => {
   try {
     const { username } = req.body
@@ -602,7 +587,6 @@ app.post("/update-profile", authenticateToken, async (req, res) => {
 
     const db = await connectToDatabase()
 
-    // Vérifier si le nom d'utilisateur est déjà pris par un autre utilisateur
     const existingUser = await db.collection("users").findOne({
       username,
       _id: { $ne: new ObjectId(userId) },
@@ -612,7 +596,6 @@ app.post("/update-profile", authenticateToken, async (req, res) => {
       return res.status(400).json({ message: "Ce nom d'utilisateur est déjà pris" })
     }
 
-    // Mettre à jour le nom d'utilisateur
     const result = await db.collection("users").updateOne(
       { _id: new ObjectId(userId) },
       {
@@ -638,11 +621,6 @@ app.post("/update-profile", authenticateToken, async (req, res) => {
 const handler = serverless(app)
 
 exports.handler = async (event, context) => {
-  // Préfixer toutes les routes avec /.netlify/functions/api
-  if (event.path.startsWith("/.netlify/functions/api")) {
-    event.path = event.path.replace("/.netlify/functions/api", "")
-  }
-
   // Handle CORS preflight requests
   if (event.httpMethod === "OPTIONS") {
     return {
