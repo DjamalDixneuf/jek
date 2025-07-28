@@ -1,42 +1,31 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { API_URL } from "@/lib/constants"
 
-export default function AuthForm() {
-  const router = useRouter()
-  const [activeTab, setActiveTab] = useState("login")
+export function AuthForm() {
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
-
-  // Login form state
-  const [loginData, setLoginData] = useState({
-    username: "",
-    password: "",
-  })
-
-  // Signup form state
-  const [signupData, setSignupData] = useState({
-    username: "",
+  const [loginData, setLoginData] = useState({ email: "", password: "" })
+  const [registerData, setRegisterData] = useState({
+    name: "",
     email: "",
     password: "",
+    confirmPassword: "",
   })
+  const router = useRouter()
 
-  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setLoginData((prev) => ({ ...prev, [name]: value }))
-    setError("") // Clear error when user types
-  }
-
-  const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setSignupData((prev) => ({ ...prev, [name]: value }))
-    setError("") // Clear error when user types
-  }
-
-  const handleLoginSubmit = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
@@ -47,196 +36,229 @@ export default function AuthForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: loginData.username,
-          password: loginData.password,
-        }),
+        body: JSON.stringify(loginData),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || "Login failed")
-      }
+      if (response.ok) {
+        // Stocker le token et les infos utilisateur
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("user", JSON.stringify(data.user))
 
-      // Store tokens in localStorage
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("refreshToken", data.refreshToken)
-      localStorage.setItem("userRole", data.role)
-
-      // Redirect based on role
-      if (data.role === "admin") {
-        router.push("/admin")
+        // Rediriger selon le rôle
+        if (data.user.role === "admin") {
+          router.push("/admin-dashboard")
+        } else {
+          router.push("/dashboard")
+        }
       } else {
-        router.push("/dashboard")
+        setError(data.message || "Erreur de connexion")
       }
-    } catch (error: any) {
-      console.error("Login failed:", error)
-      setError(error.message || "Login failed. Please check your credentials.")
+    } catch (error) {
+      console.error("Erreur de connexion:", error)
+      setError("Erreur serveur lors de la connexion")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleSignupSubmit = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
+    if (registerData.password !== registerData.confirmPassword) {
+      setError("Les mots de passe ne correspondent pas")
+      setIsLoading(false)
+      return
+    }
+
     try {
-      const response = await fetch(`${API_URL}/signup`, {
+      const response = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          username: signupData.username,
-          email: signupData.email,
-          password: signupData.password,
+          name: registerData.name,
+          email: registerData.email,
+          password: registerData.password,
         }),
       })
 
       const data = await response.json()
 
-      if (!response.ok) {
-        throw new Error(data.message || "Signup failed")
-      }
+      if (response.ok) {
+        // Stocker le token et les infos utilisateur
+        localStorage.setItem("token", data.token)
+        localStorage.setItem("user", JSON.stringify(data.user))
 
-      alert("Account created successfully! You can now log in.")
-      setActiveTab("login")
-      setSignupData({ username: "", email: "", password: "" })
-    } catch (error: any) {
-      console.error("Signup failed:", error)
-      setError(error.message || "Signup failed. Please try again.")
+        // Rediriger vers le dashboard
+        router.push("/dashboard")
+      } else {
+        setError(data.message || "Erreur lors de l'inscription")
+      }
+    } catch (error) {
+      console.error("Erreur d'inscription:", error)
+      setError("Erreur serveur lors de l'inscription")
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="w-full">
-      <div className="flex border-b border-gray-700 mb-6">
-        <button
-          className={`px-4 py-2 flex-1 ${activeTab === "login" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-400"}`}
-          onClick={() => setActiveTab("login")}
-        >
-          Login
-        </button>
-        <button
-          className={`px-4 py-2 flex-1 ${activeTab === "signup" ? "border-b-2 border-blue-500 text-blue-500" : "text-gray-400"}`}
-          onClick={() => setActiveTab("signup")}
-        >
-          Sign Up
-        </button>
-      </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Bienvenue</CardTitle>
+        <CardDescription>Connectez-vous ou créez un compte pour continuer</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="login" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="login">Connexion</TabsTrigger>
+            <TabsTrigger value="register">Inscription</TabsTrigger>
+          </TabsList>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-900/50 border border-red-500 rounded-md text-red-200 text-sm">{error}</div>
-      )}
+          <TabsContent value="login">
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="login-email">Email</Label>
+                <Input
+                  id="login-email"
+                  type="email"
+                  placeholder="votre@email.com"
+                  value={loginData.email}
+                  onChange={(e) => {
+                    setLoginData({ ...loginData, email: e.target.value })
+                    setError("")
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="login-password">Mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="login-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={loginData.password}
+                    onChange={(e) => {
+                      setLoginData({ ...loginData, password: e.target.value })
+                      setError("")
+                    }}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Connexion...
+                  </>
+                ) : (
+                  "Se connecter"
+                )}
+              </Button>
+            </form>
+          </TabsContent>
 
-      {activeTab === "login" && (
-        <form onSubmit={handleLoginSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="username" className="block text-sm font-medium text-gray-400 mb-1">
-              Username
-            </label>
-            <input
-              id="username"
-              name="username"
-              type="text"
-              required
-              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
-              value={loginData.username}
-              onChange={handleLoginChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-400 mb-1">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
-              value={loginData.password}
-              onChange={handleLoginChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            disabled={isLoading}
-          >
-            {isLoading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-      )}
-
-      {activeTab === "signup" && (
-        <form onSubmit={handleSignupSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="signup-username" className="block text-sm font-medium text-gray-400 mb-1">
-              Username
-            </label>
-            <input
-              id="signup-username"
-              name="username"
-              type="text"
-              required
-              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
-              value={signupData.username}
-              onChange={handleSignupChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-400 mb-1">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
-              value={signupData.email}
-              onChange={handleSignupChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="signup-password" className="block text-sm font-medium text-gray-400 mb-1">
-              Password
-            </label>
-            <input
-              id="signup-password"
-              name="password"
-              type="password"
-              required
-              className="w-full p-2 bg-gray-800 border border-gray-700 rounded-md text-white"
-              value={signupData.password}
-              onChange={handleSignupChange}
-              disabled={isLoading}
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
-            disabled={isLoading}
-          >
-            {isLoading ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
-      )}
-    </div>
+          <TabsContent value="register">
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="register-name">Nom</Label>
+                <Input
+                  id="register-name"
+                  type="text"
+                  placeholder="Votre nom"
+                  value={registerData.name}
+                  onChange={(e) => {
+                    setRegisterData({ ...registerData, name: e.target.value })
+                    setError("")
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-email">Email</Label>
+                <Input
+                  id="register-email"
+                  type="email"
+                  placeholder="votre@email.com"
+                  value={registerData.email}
+                  onChange={(e) => {
+                    setRegisterData({ ...registerData, email: e.target.value })
+                    setError("")
+                  }}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-password">Mot de passe</Label>
+                <div className="relative">
+                  <Input
+                    id="register-password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={registerData.password}
+                    onChange={(e) => {
+                      setRegisterData({ ...registerData, password: e.target.value })
+                      setError("")
+                    }}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="register-confirm-password">Confirmer le mot de passe</Label>
+                <Input
+                  id="register-confirm-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={registerData.confirmPassword}
+                  onChange={(e) => {
+                    setRegisterData({ ...registerData, confirmPassword: e.target.value })
+                    setError("")
+                  }}
+                  required
+                />
+              </div>
+              {error && <div className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</div>}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Inscription...
+                  </>
+                ) : (
+                  "S'inscrire"
+                )}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   )
 }
