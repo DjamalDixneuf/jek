@@ -317,6 +317,8 @@ export default function AdminDashboardPage() {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("No authentication token")
 
+      console.log("[v0] Toggling ban for user:", id, "ban value:", ban)
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/admin/users/${id}/ban`,
         {
@@ -329,8 +331,12 @@ export default function AdminDashboardPage() {
         },
       )
 
+      console.log("[v0] Ban response status:", response.status)
+      const responseBody = await response.json()
+      console.log("[v0] Ban response body:", responseBody)
+
       if (!response.ok) {
-        throw new Error("Erreur lors de la mise à jour")
+        throw new Error(responseBody?.message || "Erreur lors de la mise à jour")
       }
 
       setUsers((prev) => prev.map((user) => (user._id === id ? { ...user, isBanned: ban } : user)))
