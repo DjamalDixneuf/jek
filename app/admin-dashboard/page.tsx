@@ -50,7 +50,6 @@ export default function AdminDashboardPage() {
   })
   const [episodes, setEpisodes] = useState<{ url: string; description: string }[]>([])
 
-  // Vérifier l'authentification
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -60,12 +59,10 @@ export default function AdminDashboardPage() {
       return
     }
 
-    // Charger les données initiales
     loadUsers()
     loadMovies()
     loadRequests()
 
-    // Ajouter l'écouteur d'événement pour le défilement
     const handleScroll = () => {
       setIsHeaderScrolled(window.scrollY > 50)
     }
@@ -74,7 +71,6 @@ export default function AdminDashboardPage() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [router])
 
-  // Remplacer les fonctions de chargement de données simulées par des appels API réels
   const loadUsers = async () => {
     setIsLoading(true)
     try {
@@ -101,7 +97,7 @@ export default function AdminDashboardPage() {
       setIsLoading(false)
     }
   }
-  
+
   const loadMovies = async () => {
     setIsLoading(true)
     try {
@@ -119,12 +115,10 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      // S'assurer que data.movies est un tableau (si l'API renvoie {movies: [...]}), sinon utiliser data directement
       setMovies(Array.isArray(data.movies) ? data.movies : Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erreur lors du chargement des films:", error)
       alert("Impossible de charger les films et séries. Veuillez réessayer.")
-      // En cas d'erreur, initialiser movies comme un tableau vide
       setMovies([])
     } finally {
       setIsLoading(false)
@@ -148,12 +142,10 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      // S'assurer que data est un tableau
       setRequests(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error("Erreur lors du chargement des demandes:", error)
       alert("Impossible de charger les demandes. Veuillez réessayer.")
-      // En cas d'erreur, initialiser requests comme un tableau vide
       setRequests([])
     } finally {
       setIsLoading(false)
@@ -182,11 +174,9 @@ export default function AdminDashboardPage() {
     const { name, value } = e.target
     setMovieFormData((prev) => ({ ...prev, [name]: value }))
 
-    // Mettre à jour le nombre d'épisodes si le type change
     if (name === "type" && value === "film") {
       setEpisodes([])
     } else if (name === "type" && value === "série") {
-      // Initialiser les épisodes si on passe à une série
       const count = Number.parseInt(movieFormData.episodeCount) || 1
       setEpisodes(Array(count).fill({ url: "", description: "" }))
     } else if (name === "episodeCount" && movieFormData.type === "série") {
@@ -194,12 +184,10 @@ export default function AdminDashboardPage() {
       setEpisodes((prev) => {
         const newEpisodes = [...prev]
         if (count > prev.length) {
-          // Ajouter des épisodes
           for (let i = prev.length; i < count; i++) {
             newEpisodes.push({ url: "", description: "" })
           }
         } else if (count < prev.length) {
-          // Supprimer des épisodes
           return newEpisodes.slice(0, count)
         }
         return newEpisodes
@@ -225,13 +213,11 @@ export default function AdminDashboardPage() {
     })
   }
 
-  // Remplacer la fonction d'ajout de film par un appel API réel
   const handleAddMovie = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Validation
       if (
         !movieFormData.title ||
         !movieFormData.duration ||
@@ -252,14 +238,12 @@ export default function AdminDashboardPage() {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("No authentication token")
 
-      // Préparer les données du film
       const movieData = {
         ...movieFormData,
         genre: selectedGenres,
         episodes: movieFormData.type === "série" ? episodes : [],
       }
 
-      // Envoyer la requête à l'API
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
         method: "POST",
         headers: {
@@ -275,11 +259,8 @@ export default function AdminDashboardPage() {
       }
 
       const newMovie = await response.json()
-
-      // Ajouter le nouveau film à la liste
       setMovies((prev) => [newMovie, ...prev])
 
-      // Réinitialiser le formulaire
       setMovieFormData({
         title: "",
         type: "film",
@@ -302,7 +283,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Remplacer la fonction de suppression de film par un appel API réel
   const handleDeleteMovie = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer ce film/série ?")) {
       setIsLoading(true)
@@ -321,9 +301,7 @@ export default function AdminDashboardPage() {
           throw new Error("Erreur lors de la suppression")
         }
 
-        // Supprimer le film de la liste
         setMovies((prev) => prev.filter((movie) => movie._id !== id))
-
         alert("Film/série supprimé avec succès!")
       } catch (error) {
         alert("Erreur lors de la suppression du film/série. Veuillez réessayer.")
@@ -333,7 +311,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Remplacer la fonction de bannissement d'utilisateur par un appel API réel
   const handleToggleBanUser = async (id: string, ban: boolean) => {
     setIsLoading(true)
     try {
@@ -356,18 +333,16 @@ export default function AdminDashboardPage() {
         throw new Error("Erreur lors de la mise à jour")
       }
 
-      // Mettre à jour le statut de l'utilisateur dans la liste
       setUsers((prev) => prev.map((user) => (user._id === id ? { ...user, isBanned: ban } : user)))
-
       alert(`Utilisateur ${ban ? "banni" : "débanni"} avec succès!`)
     } catch (error) {
+      console.error("[v0] Error banning user:", error)
       alert("Erreur lors de la mise à jour du statut de l'utilisateur. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Remplacer la fonction de suppression d'utilisateur par un appel API réel
   const handleDeleteUser = async (id: string) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
       setIsLoading(true)
@@ -389,9 +364,7 @@ export default function AdminDashboardPage() {
           throw new Error("Erreur lors de la suppression")
         }
 
-        // Supprimer l'utilisateur de la liste
         setUsers((prev) => prev.filter((user) => user._id !== id))
-
         alert("Utilisateur supprimé avec succès!")
       } catch (error) {
         alert("Erreur lors de la suppression de l'utilisateur. Veuillez réessayer.")
@@ -401,7 +374,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Remplacer les fonctions de gestion des demandes par des appels API réels
   const handleApproveRequest = async (id: string) => {
     setIsLoading(true)
     try {
@@ -422,9 +394,7 @@ export default function AdminDashboardPage() {
         throw new Error("Erreur lors de l'approbation")
       }
 
-      // Mettre à jour le statut de la demande dans la liste
       setRequests((prev) => prev.map((request) => (request._id === id ? { ...request, status: "approved" } : request)))
-
       alert("Demande approuvée avec succès!")
     } catch (error) {
       alert("Erreur lors de l'approbation de la demande. Veuillez réessayer.")
@@ -455,9 +425,7 @@ export default function AdminDashboardPage() {
         throw new Error("Erreur lors du rejet")
       }
 
-      // Mettre à jour le statut de la demande dans la liste
       setRequests((prev) => prev.map((request) => (request._id === id ? { ...request, status: "rejected" } : request)))
-
       alert("Demande rejetée avec succès!")
     } catch (error) {
       alert("Erreur lors du rejet de la demande. Veuillez réessayer.")
@@ -466,7 +434,6 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Filtrer les utilisateurs en fonction du terme de recherche
   const filteredUsers = Array.isArray(users)
     ? users.filter(
         (user) =>
@@ -475,7 +442,6 @@ export default function AdminDashboardPage() {
       )
     : []
 
-  // Filtrer les films en fonction du terme de recherche
   const filteredMovies = Array.isArray(movies)
     ? movies.filter(
         (movie) =>
@@ -487,7 +453,7 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="netflix-container admin-dashboard">
-      {/* En-tête Netflix */}
+      {/* Header */}
       <header className={`netflix-header ${isHeaderScrolled ? "scrolled" : ""}`}>
         <div className="netflix-header-left">
           <div className="netflix-logo">
@@ -580,7 +546,7 @@ export default function AdminDashboardPage() {
                   </thead>
                   <tbody>
                     {filteredUsers.map((user) => (
-                      <tr key={user.id}>
+                      <tr key={user._id}>
                         <td>{user.username}</td>
                         <td>{user.email}</td>
                         <td>
@@ -590,12 +556,12 @@ export default function AdminDashboardPage() {
                         </td>
                         <td className="actions-cell">
                           <button
-                            onClick={() => handleToggleBanUser(user.id, !user.isBanned)}
+                            onClick={() => handleToggleBanUser(user._id, !user.isBanned)}
                             className={`admin-btn ${user.isBanned ? "btn-success" : "btn-warning"}`}
                           >
                             {user.isBanned ? "Débannir" : "Bannir"}
                           </button>
-                          <button onClick={() => handleDeleteUser(user.id)} className="admin-btn btn-danger">
+                          <button onClick={() => handleDeleteUser(user._id)} className="admin-btn btn-danger">
                             <Trash2 size={16} />
                             Supprimer
                           </button>
@@ -624,7 +590,6 @@ export default function AdminDashboardPage() {
             <span className="badge">{movies.length} contenus</span>
           </div>
 
-          {/* Formulaire pour ajouter un nouveau film ou une nouvelle série */}
           <div className="admin-card">
             <h3 className="card-title">
               <Plus size={18} className="icon" />
@@ -817,7 +782,6 @@ export default function AdminDashboardPage() {
             </form>
           </div>
 
-          {/* Liste de films et séries */}
           <div className="admin-card">
             <h3 className="card-title">
               <Film size={18} className="icon" />
@@ -844,7 +808,7 @@ export default function AdminDashboardPage() {
                   </thead>
                   <tbody>
                     {filteredMovies.map((movie) => (
-                      <tr key={movie.id}>
+                      <tr key={movie._id}>
                         <td>{movie.title}</td>
                         <td>
                           <span className={`type-badge ${movie.type === "film" ? "film" : "serie"}`}>
@@ -867,7 +831,7 @@ export default function AdminDashboardPage() {
                         <td>{movie.releaseYear}</td>
                         <td>{movie.type === "série" ? (movie.episodes ? movie.episodes.length : "N/A") : "N/A"}</td>
                         <td className="actions-cell">
-                          <button onClick={() => handleDeleteMovie(movie.id)} className="admin-btn btn-danger">
+                          <button onClick={() => handleDeleteMovie(movie._id)} className="admin-btn btn-danger">
                             <Trash2 size={16} />
                             Supprimer
                           </button>
@@ -916,7 +880,7 @@ export default function AdminDashboardPage() {
                   </thead>
                   <tbody>
                     {requests.map((request) => (
-                      <tr key={request.id} data-request-id={request.id}>
+                      <tr key={request._id} data-request-id={request._id}>
                         <td>{request.title}</td>
                         <td>
                           <a href={request.imdbLink} target="_blank" rel="noopener noreferrer" className="imdb-link">
@@ -938,12 +902,12 @@ export default function AdminDashboardPage() {
                           {request.status === "pending" && (
                             <>
                               <button
-                                onClick={() => handleApproveRequest(request.id)}
+                                onClick={() => handleApproveRequest(request._id)}
                                 className="admin-btn btn-success"
                               >
                                 Approuver
                               </button>
-                              <button onClick={() => handleRejectRequest(request.id)} className="admin-btn btn-danger">
+                              <button onClick={() => handleRejectRequest(request._id)} className="admin-btn btn-danger">
                                 Rejeter
                               </button>
                             </>
@@ -965,4 +929,3 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
-
