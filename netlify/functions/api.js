@@ -914,25 +914,35 @@ app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req
 
     const { db } = await connectToDatabase()
 
-    const updateDoc = {
-      isBanned: ban,
-      updatedAt: new Date(),
-      lastModifiedBy: req.user.username,
+    let updateQuery = {}
+
+    if (ban) {
+      // Bannir l'utilisateur
+      updateQuery = {
+        $set: {
+          isBanned: true,
+          updatedAt: new Date(),
+          lastModifiedBy: req.user.username,
+          banReason: reason || "Aucune raison fournie",
+          bannedAt: new Date(),
+        },
+      }
+    } else {
+      // Débannir l'utilisateur
+      updateQuery = {
+        $set: {
+          isBanned: false,
+          updatedAt: new Date(),
+          lastModifiedBy: req.user.username,
+        },
+        $unset: {
+          banReason: "",
+          bannedAt: "",
+        },
+      }
     }
 
-    if (ban && reason) {
-      updateDoc.banReason = reason
-      updateDoc.bannedAt = new Date()
-    } else if (!ban) {
-      updateDoc.$unset = { banReason: "", bannedAt: "" }
-    }
-
-    const result = await db
-      .collection("users")
-      .updateOne(
-        { _id: new ObjectId(userId) },
-        ban ? { $set: updateDoc } : { $set: updateDoc, $unset: updateDoc.$unset },
-      )
+    const result = await db.collection("users").updateOne({ _id: new ObjectId(userId) }, updateQuery)
 
     if (result.matchedCount === 0) {
       return res.status(404).json({ message: "Utilisateur non trouvé" })
@@ -1071,3 +1081,4 @@ exports.handler = async (event, context) => {
     }
   }
 }
+
