@@ -92,18 +92,16 @@ export default function AdminDashboardPage() {
       }
 
       const data = await response.json()
-      // S'assurer que data est un tableau
-      setUsers(Array.isArray(data) ? data : [])
+      setUsers(Array.isArray(data.users) ? data.users : [])
     } catch (error) {
       console.error("Erreur lors du chargement des utilisateurs:", error)
       alert("Impossible de charger les utilisateurs. Veuillez réessayer.")
-      // En cas d'erreur, initialiser users comme un tableau vide
       setUsers([])
     } finally {
       setIsLoading(false)
     }
   }
-
+  
   const loadMovies = async () => {
     setIsLoading(true)
     try {
@@ -967,3 +965,4 @@ export default function AdminDashboardPage() {
     </div>
   )
 }
+
