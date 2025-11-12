@@ -635,11 +635,11 @@ app.post("/movie-requests", authenticateToken, async (req, res) => {
       })
     }
 
-    // Valider le lien IMDB
-    const imdbRegex = /^https?:\/\/(www\.)?imdb\.com\/title\/tt\d+/
+    const imdbRegex = /^https?:\/\/(www\.)?imdb\.com(\/[a-z]{2})?\/title\/tt\d+/
     if (!imdbRegex.test(imdbLink)) {
       return res.status(400).json({
-        message: "Lien IMDB invalide. Format attendu: https://www.imdb.com/title/ttXXXXXXX",
+        message:
+          "Lien IMDB invalide. Format attendu: https://www.imdb.com/title/ttXXXXXXX ou https://www.imdb.com/fr/title/ttXXXXXXX",
       })
     }
 
@@ -1081,4 +1081,3 @@ exports.handler = async (event, context) => {
     }
   }
 }
-
