@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import Logo from "@/components/logo" // Correction de l'importation
+import Logo from "@/components/logo"
 import "../styles/stylesA.css"
 import "../styles/mobile-nav.css"
 
@@ -13,10 +13,11 @@ export default function RequestMoviePage() {
   const router = useRouter()
   const [requests, setRequests] = useState<any[]>([])
   const [availableMovies, setAvailableMovies] = useState<any[]>([])
+  const [userId, setUserId] = useState("")
   const [formData, setFormData] = useState({
     title: "",
     imdbLink: "",
-    comment: "",
+    description: "", // renamed from 'comment' to 'description' to match backend
   })
   const [isLoading, setIsLoading] = useState({
     requests: true,
@@ -54,6 +55,9 @@ export default function RequestMoviePage() {
 
         if (userData.username) {
           setUserName(userData.username)
+        }
+        if (userData._id || userData.id) {
+          setUserId(userData._id || userData.id)
         }
       } catch (error) {
         console.error("Erreur lors du chargement des informations utilisateur:", error)
@@ -154,17 +158,28 @@ export default function RequestMoviePage() {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("No authentication token")
 
+      const requestPayload = {
+        title: formData.title,
+        imdbLink: formData.imdbLink,
+        description: formData.description, // send 'description' instead of spreading all formData
+      }
+
+      console.log("[v0] Sending request:", requestPayload)
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movie-requests`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(requestPayload),
       })
+
+      console.log("[v0] Response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
+        console.log("[v0] Error response:", errorData)
         throw new Error(errorData.message || "Erreur lors de l'enregistrement de la demande")
       }
 
@@ -172,7 +187,7 @@ export default function RequestMoviePage() {
       setFormData({
         title: "",
         imdbLink: "",
-        comment: "",
+        description: "", // reset description field
       })
 
       // Recharger les demandes pour afficher la nouvelle
@@ -180,6 +195,7 @@ export default function RequestMoviePage() {
 
       alert("Votre demande a été enregistrée avec succès!")
     } catch (error: any) {
+      console.error("[v0] Error:", error)
       alert(error.message || "Erreur lors de l'enregistrement de la demande. Veuillez réessayer.")
     } finally {
       setIsLoading((prev) => ({ ...prev, submit: false }))
@@ -212,7 +228,6 @@ export default function RequestMoviePage() {
 
   return (
     <div className="netflix-container">
-      {/* En-tête Netflix */}
       <header className={`netflix-header ${scrolled ? "scrolled" : ""}`}>
         <div className="netflix-header-left">
           <div className="netflix-logo">
@@ -290,7 +305,6 @@ export default function RequestMoviePage() {
         </div>
       )}
 
-      {/* Contenu principal */}
       <main className="netflix-main" style={{ paddingTop: "120px" }}>
         <div
           className="netflix-card"
@@ -372,14 +386,14 @@ export default function RequestMoviePage() {
               </div>
 
               <div style={{ marginBottom: "20px" }}>
-                <label htmlFor="comment" style={{ marginBottom: "5px", color: "#1a73e8", display: "block" }}>
+                <label htmlFor="description" style={{ marginBottom: "5px", color: "#1a73e8", display: "block" }}>
                   Commentaire (optionnel)
                 </label>
                 <textarea
-                  id="comment"
-                  name="comment"
+                  id="description"
+                  name="description"
                   rows={4}
-                  value={formData.comment}
+                  value={formData.description}
                   onChange={handleInputChange}
                   style={{
                     padding: "15px",
@@ -420,7 +434,7 @@ export default function RequestMoviePage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "20px" }}>
               {requests.map((request) => (
                 <div
-                  key={request.id}
+                  key={request._id}
                   style={{
                     backgroundColor: "#181818",
                     borderRadius: "8px",
@@ -437,10 +451,10 @@ export default function RequestMoviePage() {
                       {request.imdbLink.substring(0, 30)}...
                     </a>
                   </p>
-                  {request.comment && (
+                  {request.description && (
                     <p style={{ marginBottom: "10px", fontSize: "14px" }}>
                       <span style={{ color: "#aaa" }}>Commentaire: </span>
-                      {request.comment}
+                      {request.description} {/* display 'description' instead of 'comment' */}
                     </p>
                   )}
                   <div
@@ -481,7 +495,7 @@ export default function RequestMoviePage() {
           ) : (
             <div className="netflix-row-content">
               {availableMovies.map((movie) => (
-                <div key={movie.id} className="netflix-item">
+                <div key={movie._id} className="netflix-item">
                   <Image
                     src={movie.thumbnailUrl || "/placeholder.svg"}
                     alt={movie.title}
