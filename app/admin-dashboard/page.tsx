@@ -3,8 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Menu, X, Search, Film, Tv, Plus, Trash2, ChevronDown } from "lucide-react"
+import { useRouter } from 'next/navigation'
+import { Menu, X, Search, Film, Tv, Plus, Trash2, ChevronDown } from 'lucide-react'
 import Logo from "@/components/logo"
 import "../styles/admin-dashboard.css"
 
@@ -46,9 +46,10 @@ export default function AdminDashboardPage() {
     releaseYear: new Date().getFullYear().toString(),
     thumbnailUrl: "",
     videoUrl: "",
+    videoLinkType: "drive", // Ajouter le type de lien vidéo
     episodeCount: "1",
   })
-  const [episodes, setEpisodes] = useState<{ url: string; description: string }[]>([])
+  const [episodes, setEpisodes] = useState<{ url: string; description: string; linkType: string }[]>([]) // Ajouter linkType aux épisodes
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -178,14 +179,14 @@ export default function AdminDashboardPage() {
       setEpisodes([])
     } else if (name === "type" && value === "série") {
       const count = Number.parseInt(movieFormData.episodeCount) || 1
-      setEpisodes(Array(count).fill({ url: "", description: "" }))
+      setEpisodes(Array(count).fill({ url: "", description: "", linkType: "drive" })) // Initialiser linkType
     } else if (name === "episodeCount" && movieFormData.type === "série") {
       const count = Number.parseInt(value) || 1
       setEpisodes((prev) => {
         const newEpisodes = [...prev]
         if (count > prev.length) {
           for (let i = prev.length; i < count; i++) {
-            newEpisodes.push({ url: "", description: "" })
+            newEpisodes.push({ url: "", description: "", linkType: "drive" }) // Initialiser linkType
           }
         } else if (count < prev.length) {
           return newEpisodes.slice(0, count)
@@ -244,6 +245,8 @@ export default function AdminDashboardPage() {
         episodes: movieFormData.type === "série" ? episodes : [],
       }
 
+      console.log("[v0] Submitting movie data:", movieData)
+
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
         method: "POST",
         headers: {
@@ -253,13 +256,16 @@ export default function AdminDashboardPage() {
         body: JSON.stringify(movieData),
       })
 
+      console.log("[v0] Movie response status:", response.status)
+
       if (!response.ok) {
         const errorData = await response.json()
+        console.log("[v0] Movie error response:", errorData)
         throw new Error(errorData.message || "Erreur lors de l'ajout du film/série")
       }
 
       const newMovie = await response.json()
-      setMovies((prev) => [newMovie, ...prev])
+      setMovies((prev) => [newMovie.movie, ...prev])
 
       setMovieFormData({
         title: "",
@@ -270,6 +276,7 @@ export default function AdminDashboardPage() {
         releaseYear: new Date().getFullYear().toString(),
         thumbnailUrl: "",
         videoUrl: "",
+        videoLinkType: "drive",
         episodeCount: "1",
       })
       setEpisodes([])
@@ -277,6 +284,7 @@ export default function AdminDashboardPage() {
 
       alert("Film/série ajouté avec succès!")
     } catch (error: any) {
+      console.error("[v0] Error adding movie:", error)
       alert(error.message || "Erreur lors de l'ajout du film/série. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
@@ -719,19 +727,39 @@ export default function AdminDashboardPage() {
               </div>
 
               {movieFormData.type === "film" ? (
-                <div className="form-group">
-                  <label htmlFor="videoUrl">URL de la Vidéo</label>
-                  <input
-                    type="url"
-                    id="videoUrl"
-                    name="videoUrl"
-                    value={movieFormData.videoUrl}
-                    onChange={handleMovieInputChange}
-                    placeholder="https://example.com/video.mp4"
-                    required
-                    className="admin-input"
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label htmlFor="videoLinkType">Type de Lien Vidéo</label>
+                    <select
+                      id="videoLinkType"
+                      name="videoLinkType"
+                      value={movieFormData.videoLinkType}
+                      onChange={handleMovieInputChange}
+                      className="admin-select"
+                    >
+                      <option value="drive">Google Drive</option>
+                      <option value="fsvid">FSvid</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="videoUrl">URL de la Vidéo</label>
+                    <input
+                      type="url"
+                      id="videoUrl"
+                      name="videoUrl"
+                      value={movieFormData.videoUrl}
+                      onChange={handleMovieInputChange}
+                      placeholder={
+                        movieFormData.videoLinkType === "drive"
+                          ? "https://drive.google.com/file/d/[ID]/preview"
+                          : "/d/[ID].html"
+                      }
+                      required
+                      className="admin-input"
+                    />
+                  </div>
+                </>
               ) : (
                 <div className="form-group">
                   <label htmlFor="episodeCount">Nombre d'épisodes</label>
@@ -752,13 +780,30 @@ export default function AdminDashboardPage() {
                         <h4>Épisode {index + 1}</h4>
 
                         <div className="form-group">
+                          <label htmlFor={`episodeLinkType${index}`}>Type de Lien</label>
+                          <select
+                            id={`episodeLinkType${index}`}
+                            value={episode.linkType || "drive"}
+                            onChange={(e) => handleEpisodeChange(index, "linkType", e.target.value)}
+                            className="admin-select"
+                          >
+                            <option value="drive">Google Drive</option>
+                            <option value="fsvid">FSvid</option>
+                          </select>
+                        </div>
+
+                        <div className="form-group">
                           <label htmlFor={`episodeUrl${index}`}>URL de l'épisode</label>
                           <input
                             type="url"
                             id={`episodeUrl${index}`}
                             value={episode.url}
                             onChange={(e) => handleEpisodeChange(index, "url", e.target.value)}
-                            placeholder="https://example.com/episode.mp4"
+                            placeholder={
+                              episode.linkType === "drive"
+                                ? "https://drive.google.com/file/d/[ID]/preview"
+                                : "/d/[ID].html"
+                            }
                             required
                             className="admin-input"
                           />
