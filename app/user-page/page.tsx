@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter } from 'next/navigation'
 import Image from "next/image"
 import "../styles/stylesA.css"
 import Logo from "../../components/logo"
@@ -278,9 +278,13 @@ export default function UserPage() {
 
     if (!videoPlayer || !movieDetails || !movie) return
 
+    let videoUrl = ""
+    let isFSvid = false
+
     if (movie.type === "série" && movie.episodes && movie.episodes.length > 0) {
       const episode = movie.episodes[episodeIndex]
-      videoPlayer.src = episode.url || ""
+      videoUrl = episode.url || ""
+      isFSvid = videoUrl.includes("fsvid.lol")
       movieDetails.innerHTML = `
         <div class="movie-details-grid">
           <div class="movie-detail-item">
@@ -310,7 +314,8 @@ export default function UserPage() {
         </div>
       `
     } else {
-      videoPlayer.src = movie.videoUrl || ""
+      videoUrl = movie.videoUrl || ""
+      isFSvid = videoUrl.includes("fsvid.lol")
       movieDetails.innerHTML = `
         <div class="movie-details-grid">
           <div class="movie-detail-item">
@@ -340,6 +345,13 @@ export default function UserPage() {
         </div>
       `
     }
+
+    const sandboxAttrs = isFSvid
+      ? "allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation"
+      : "allow-same-origin allow-scripts allow-popups allow-forms"
+
+    videoPlayer.src = videoUrl
+    videoPlayer.setAttribute("sandbox", sandboxAttrs)
   }
 
   // Gestionnaires d'événements pour le modal
