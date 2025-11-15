@@ -105,6 +105,32 @@ const generateTokens = (user) => {
   return { token, refreshToken }
 }
 
+// Fonction pour valider et transformer les liens vidéo
+const processVideoLink = (link, linkType) => {
+  if (linkType === "drive") {
+    // Google Drive : accepter directement le lien
+    // Format attendu : https://drive.google.com/file/d/XXX/preview
+    const driveRegex = /https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+\/preview/
+    if (!driveRegex.test(link)) {
+      throw new Error(
+        "Lien Google Drive invalide. Format attendu: https://drive.google.com/file/d/[ID]/preview",
+      )
+    }
+    return link
+  } else if (linkType === "fsvid") {
+    // FSvid : transformer /d/<id>.html en https://fsvid.lol/embed-<id>.html
+    const fsvidRegex = /\/d\/([a-zA-Z0-9_-]+)\.html/
+    const match = link.match(fsvidRegex)
+    if (!match) {
+      throw new Error("Lien FSvid invalide. Format attendu: /d/<id>.html")
+    }
+    const videoId = match[1]
+    return `https://fsvid.lol/embed-${videoId}.html`
+  } else {
+    throw new Error("Type de lien invalide. Doit être 'drive' ou 'fsvid'")
+  }
+}
+
 // ==================== ROUTES ====================
 
 // Route racine - Test de l'API
@@ -482,7 +508,8 @@ app.get("/movies/:id", authenticateToken, async (req, res) => {
 // Ajouter un film (Admin seulement)
 app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, type, duration, description, genre, releaseYear, thumbnailUrl, videoUrl, episodes } = req.body
+    const { title, type, duration, description, genre, releaseYear, thumbnailUrl, videoUrl, videoLinkType, episodes } =
+      req.body
 
     const requiredFields = ["title", "type", "duration", "description", "genre", "releaseYear", "thumbnailUrl"]
     const missingFields = requiredFields.filter((field) => !req.body[field])
@@ -498,12 +525,39 @@ app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Le type doit être 'film' ou 'série'" })
     }
 
-    if (type === "film" && !videoUrl) {
-      return res.status(400).json({ message: "URL vidéo requise pour un film" })
+    if (type === "film") {
+      if (!videoUrl || !videoLinkType) {
+        return res.status(400).json({ message: "URL vidéo et type de lien requis pour un film" })
+      }
+      if (!["drive", "fsvid"].includes(videoLinkType)) {
+        return res.status(400).json({ message: "Type de lien invalide. Doit être 'drive' ou 'fsvid'" })
+      }
     }
 
-    if (type === "série" && (!episodes || !Array.isArray(episodes))) {
-      return res.status(400).json({ message: "Liste d'épisodes requise pour une série" })
+    if (type === "série") {
+      if (!episodes || !Array.isArray(episodes)) {
+        return res.status(400).json({ message: "Liste d'épisodes requise pour une série" })
+      }
+      for (let i = 0; i < episodes.length; i++) {
+        const episode = episodes[i]
+        if (!episode.url || !episode.linkType) {
+          return res.status(400).json({
+            message: `Épisode ${i + 1}: URL vidéo et type de lien requis`,
+          })
+        }
+        if (!["drive", "fsvid"].includes(episode.linkType)) {
+          return res.status(400).json({
+            message: `Épisode ${i + 1}: Type de lien invalide. Doit être 'drive' ou 'fsvid'`,
+          })
+        }
+        try {
+          episodes[i].url = processVideoLink(episode.url, episode.linkType)
+        } catch (error) {
+          return res.status(400).json({
+            message: `Épisode ${i + 1}: ${error.message}`,
+          })
+        }
+      }
     }
 
     const { db } = await connectToDatabase()
@@ -514,8 +568,25 @@ app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Un film avec ce titre et cette année existe déjà" })
     }
 
+    let processedVideoUrl = videoUrl
+    if (type === "film") {
+      try {
+        processedVideoUrl = processVideoLink(videoUrl, videoLinkType)
+      } catch (error) {
+        return res.status(400).json({ message: error.message })
+      }
+    }
+
     const movieDoc = {
-      ...req.body,
+      title,
+      type,
+      duration,
+      description,
+      genre,
+      releaseYear,
+      thumbnailUrl,
+      videoUrl: processedVideoUrl,
+      episodes: type === "série" ? episodes : [],
       createdAt: new Date(),
       updatedAt: new Date(),
       addedBy: req.user.username,
