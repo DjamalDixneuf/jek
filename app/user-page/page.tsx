@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect, useRef } from "react"
 import { useRouter } from 'next/navigation'
 import Image from "next/image"
@@ -12,10 +11,7 @@ export default function UserPage() {
   const router = useRouter()
   const [movies, setMovies] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedMovie, setSelectedMovie] = useState<any | null>(null)
-  const [selectedEpisode, setSelectedEpisode] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
-  const [activeCategory, setActiveCategory] = useState("all")
   const [isHeaderScrolled, setIsHeaderScrolled] = useState(false)
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [featuredMovie, setFeaturedMovie] = useState<any | null>(null)
@@ -28,13 +24,12 @@ export default function UserPage() {
   const [userName, setUserName] = useState("John Doe")
   const [userAvatar, setUserAvatar] = useState("J")
 
-  // Nouveaux états pour le filtrage par genre et type
-  const [contentType, setContentType] = useState("all") // "all", "film", "série"
+  // États pour le filtrage par genre et type
+  const [contentType, setContentType] = useState("all")
   const [selectedGenre, setSelectedGenre] = useState("all")
   const [availableGenres, setAvailableGenres] = useState<string[]>([])
   const [isGenreMenuOpen, setIsGenreMenuOpen] = useState(false)
 
-  // Ajouter une fonction pour charger les informations utilisateur
   const loadUserInfo = async () => {
     try {
       const token = localStorage.getItem("token")
@@ -52,7 +47,6 @@ export default function UserPage() {
 
       const userData = await response.json()
 
-      // Mettre à jour les informations utilisateur
       if (userData.username) {
         setUserName(userData.username)
         setUserAvatar(userData.username.charAt(0))
@@ -62,7 +56,6 @@ export default function UserPage() {
     }
   }
 
-  // Modifier le useEffect pour appeler loadUserInfo
   useEffect(() => {
     const token = localStorage.getItem("token")
     if (!token) {
@@ -70,13 +63,9 @@ export default function UserPage() {
       return
     }
 
-    // Charger les informations utilisateur depuis l'API
     loadUserInfo()
-
-    // Charger les films depuis l'API
     loadMovies()
 
-    // Ajouter l'écouteur de défilement
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [router])
@@ -109,13 +98,11 @@ export default function UserPage() {
 
       const data = await response.json()
 
-      // S'assurer que data est un tableau
       const moviesArray = Array.isArray(data) ? data : data.movies && Array.isArray(data.movies) ? data.movies : []
 
       if (moviesArray.length > 0) {
         setMovies(moviesArray)
 
-        // Extraire tous les genres uniques des films
         const genres = new Set<string>()
         moviesArray.forEach((movie) => {
           if (movie.genre) {
@@ -128,11 +115,9 @@ export default function UserPage() {
         })
         setAvailableGenres(Array.from(genres))
 
-        // Sélectionner un film aléatoire pour la mise en avant
         const randomIndex = Math.floor(Math.random() * moviesArray.length)
         setFeaturedMovie(moviesArray[randomIndex])
       } else {
-        // Aucun film disponible
         setMovies([])
         setFeaturedMovie(null)
         setAvailableGenres([])
@@ -160,30 +145,23 @@ export default function UserPage() {
     }
   }
 
-  // Nouvelle fonction pour gérer le changement de type de contenu (films/séries)
   const handleContentTypeChange = (type: string) => {
     setContentType(type)
-    setSelectedGenre("all") // Réinitialiser le genre sélectionné
-    setIsGenreMenuOpen(false) // Fermer le menu des genres
+    setSelectedGenre("all")
+    setIsGenreMenuOpen(false)
   }
 
-  // Nouvelle fonction pour gérer le changement de genre
   const handleGenreChange = (genre: string) => {
     setSelectedGenre(genre)
-    setIsGenreMenuOpen(false) // Fermer le menu des genres
+    setIsGenreMenuOpen(false)
   }
 
-  // Modifier la structure du menu hamburger et la barre de genres
-
-  // 1. Modifier la fonction toggleGenreMenu pour qu'elle fonctionne comme un menu déroulant
   const toggleGenreMenu = (e: React.MouseEvent) => {
-    e.stopPropagation() // Empêcher la propagation pour éviter de fermer immédiatement
+    e.stopPropagation()
     setIsGenreMenuOpen(!isGenreMenuOpen)
   }
 
-  // Filtrer les films en fonction du type de contenu et du genre sélectionnés
   const filteredMovies = movies.filter((movie) => {
-    // Filtrer par terme de recherche
     const matchesSearch =
       movie.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (movie.genre &&
@@ -193,10 +171,8 @@ export default function UserPage() {
         Array.isArray(movie.genre) &&
         movie.genre.some((g: string) => g.toLowerCase().includes(searchTerm.toLowerCase())))
 
-    // Filtrer par type de contenu (film/série)
     const matchesType = contentType === "all" || movie.type === contentType
 
-    // Filtrer par genre
     const matchesGenre =
       selectedGenre === "all" ||
       (movie.genre && typeof movie.genre === "string" && movie.genre.toLowerCase() === selectedGenre.toLowerCase()) ||
@@ -207,12 +183,10 @@ export default function UserPage() {
     return matchesSearch && matchesType && matchesGenre
   })
 
-  // Filtrer les films par catégorie
   const getMoviesByCategory = (category: string) => {
     return movies.filter((movie) => movie.categories && movie.categories.includes(category))
   }
 
-  // Obtenir les films par genre
   const getMoviesByGenre = (genre: string) => {
     return movies.filter((movie) => {
       if (movie.genre) {
@@ -230,9 +204,7 @@ export default function UserPage() {
   const actionMovies = getMoviesByCategory("action")
   const dramaMovies = getMoviesByCategory("drame")
   const scifiMovies = getMoviesByCategory("sci-fi")
-
-  // Obtenir tous les films et séries pour l'affichage principal
-  const allMovies = movies.slice(0, 10) // Limiter à 10 pour l'affichage principal
+  const allMovies = movies.slice(0, 10)
 
   const handleLogout = () => {
     localStorage.removeItem("token")
@@ -245,175 +217,11 @@ export default function UserPage() {
     router.push("/request-movie")
   }
 
-  const openMovieModal = (movie: any) => {
-    setSelectedMovie(movie)
-    setSelectedEpisode(0)
-    const modal = document.getElementById("videoModal")
-    if (modal) {
-      modal.style.display = "block"
-      document.body.style.overflow = "hidden" // Empêcher le défilement
-    }
+  // NOUVELLE FONCTION : Rediriger vers la page film
+  const openMovieDetail = (movie: any) => {
+    router.push(`/film/${movie._id}`)
   }
 
-  const closeMovieModal = () => {
-    const modal = document.getElementById("videoModal")
-    if (modal) {
-      modal.style.display = "none"
-      document.body.style.overflow = "" // Réactiver le défilement
-    }
-    const videoPlayer = document.getElementById("videoPlayer") as HTMLIFrameElement
-    if (videoPlayer) {
-      videoPlayer.src = ""
-    }
-  }
-
-  const handleEpisodeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedEpisode(Number(e.target.value))
-    updateVideoPlayer(selectedMovie, Number(e.target.value))
-  }
-
-  const updateVideoPlayer = (movie: any, episodeIndex = 0) => {
-    const videoPlayer = document.getElementById("videoPlayer") as HTMLIFrameElement
-    const movieDetails = document.getElementById("movieDetails")
-
-    if (!videoPlayer || !movieDetails || !movie) return
-
-    let videoUrl = ""
-    let isFSvid = false
-
-    if (movie.type === "série" && movie.episodes && movie.episodes.length > 0) {
-      const episode = movie.episodes[episodeIndex]
-      videoUrl = episode.url || ""
-      isFSvid = videoUrl.includes("fsvid.lol")
-      movieDetails.innerHTML = `
-        <div class="movie-details-grid">
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Titre:</div>
-            <div class="movie-detail-value">${movie.title} - ${episode.title || `Épisode ${episodeIndex + 1}`}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Genre:</div>
-            <div class="movie-detail-value">${Array.isArray(movie.genre) ? movie.genre.join(", ") : movie.genre}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Durée:</div>
-            <div class="movie-detail-value">${movie.duration}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Année:</div>
-            <div class="movie-detail-value">${movie.releaseYear}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Note:</div>
-            <div class="movie-detail-value">★ ${movie.rating || "N/A"}</div>
-          </div>
-        </div>
-        <div class="movie-description">
-          <div class="movie-description-label">Description:</div>
-          <div class="movie-description-text">${episode.description || "Aucune description disponible"}</div>
-        </div>
-      `
-    } else {
-      videoUrl = movie.videoUrl || ""
-      isFSvid = videoUrl.includes("fsvid.lol")
-      movieDetails.innerHTML = `
-        <div class="movie-details-grid">
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Titre:</div>
-            <div class="movie-detail-value">${movie.title}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Genre:</div>
-            <div class="movie-detail-value">${Array.isArray(movie.genre) ? movie.genre.join(", ") : movie.genre}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Durée:</div>
-            <div class="movie-detail-value">${movie.duration}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Année:</div>
-            <div class="movie-detail-value">${movie.releaseYear}</div>
-          </div>
-          <div class="movie-detail-item">
-            <div class="movie-detail-label">Note:</div>
-            <div class="movie-detail-value">★ ${movie.rating || "N/A"}</div>
-          </div>
-        </div>
-        <div class="movie-description">
-          <div class="movie-description-label">Description:</div>
-          <div class="movie-description-text">${movie.description || "Aucune description disponible"}</div>
-        </div>
-      `
-    }
-
-    const sandboxAttrs = isFSvid
-      ? "allow-same-origin allow-scripts allow-popups allow-forms allow-top-navigation-by-user-activation"
-      : "allow-same-origin allow-scripts allow-popups allow-forms"
-
-    videoPlayer.src = videoUrl
-    videoPlayer.setAttribute("sandbox", sandboxAttrs)
-  }
-
-  // Gestionnaires d'événements pour le modal
-  useEffect(() => {
-    const closeBtn = document.getElementsByClassName("netflix-modal-close")[0] as HTMLElement
-    const modal = document.getElementById("videoModal")
-
-    if (closeBtn) {
-      closeBtn.onclick = closeMovieModal
-    }
-
-    if (modal) {
-      window.onclick = (event) => {
-        if (event.target === modal) {
-          closeMovieModal()
-        }
-      }
-    }
-
-    return () => {
-      window.onclick = null
-    }
-  }, [])
-
-  // Mettre à jour le lecteur vidéo lorsque le film ou l'épisode sélectionné change
-  useEffect(() => {
-    if (selectedMovie) {
-      updateVideoPlayer(selectedMovie, selectedEpisode)
-    }
-  }, [selectedMovie, selectedEpisode])
-
-  // Fonction pour rendre une carte de film
-  const renderMovieCard = (movie: any) => (
-    <div key={movie._id || movie.id} className="netflix-card" onClick={() => openMovieModal(movie)}>
-      <div className="netflix-card-img">
-        <Image
-          src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
-          alt={movie.title}
-          width={200}
-          height={300}
-          className="netflix-thumbnail"
-        />
-      </div>
-      <div className="netflix-card-content">
-        <h3 className="netflix-card-title">{movie.title}</h3>
-        <div className="netflix-card-info">
-          <span className="netflix-card-year">{movie.releaseYear}</span>
-          <span className="netflix-card-rating">★ {movie.rating || "N/A"}</span>
-          <span className="netflix-card-duration">{movie.duration}</span>
-        </div>
-        <p className="netflix-card-desc">
-          {movie.description ? movie.description.substring(0, 100) + "..." : "Aucune description disponible"}
-        </p>
-        <div className="netflix-card-buttons">
-          <button className="netflix-play-btn">▶ Lecture</button>
-          <button className="netflix-info-btn">ℹ️ Plus d'infos</button>
-        </div>
-      </div>
-    </div>
-  )
-
-  // Fonctions pour le menu et le profil
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen)
   }
@@ -422,7 +230,6 @@ export default function UserPage() {
     setIsProfileModalOpen(!isProfileModalOpen)
   }
 
-  // Modifier la fonction updateProfile pour mettre à jour le profil via l'API
   const updateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     const formData = new FormData(e.target as HTMLFormElement)
@@ -446,11 +253,8 @@ export default function UserPage() {
           throw new Error("Erreur lors de la mise à jour du profil")
         }
 
-        // Mettre à jour l'interface utilisateur
         setUserName(newName)
         setUserAvatar(newName.charAt(0))
-
-        // Fermer le modal
         setIsProfileModalOpen(false)
       } catch (error) {
         console.error("Erreur lors de la mise à jour du profil:", error)
@@ -459,7 +263,6 @@ export default function UserPage() {
     }
   }
 
-  // Fermer le menu lorsqu'on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement
@@ -467,7 +270,6 @@ export default function UserPage() {
         setIsMenuOpen(false)
       }
 
-      // Fermer le menu des genres si on clique en dehors
       if (isGenreMenuOpen && !target.closest(".netflix-genre-menu") && !target.closest(".netflix-nav-item")) {
         setIsGenreMenuOpen(false)
       }
@@ -530,7 +332,6 @@ export default function UserPage() {
             />
           </div>
 
-          {/* Menu hamburger */}
           <button className="netflix-menu-toggle" onClick={toggleMenu} aria-label="Menu">
             <div className={`hamburger-icon ${isMenuOpen ? "open" : ""}`}>
               <span></span>
@@ -539,14 +340,12 @@ export default function UserPage() {
             </div>
           </button>
 
-          {/* Menu déroulant */}
           <div className={`netflix-dropdown-menu ${isMenuOpen ? "open" : ""}`}>
             <div className="netflix-profile-menu-item" onClick={toggleProfileModal}>
               <div className="netflix-avatar">{userAvatar}</div>
               <span>Profil</span>
             </div>
 
-            {/* Éléments de navigation pour mobile */}
             <div className="netflix-mobile-nav">
               <div
                 className={`netflix-menu-item ${contentType === "all" && selectedGenre === "all" ? "active" : ""}`}
@@ -593,7 +392,7 @@ export default function UserPage() {
         </div>
       </header>
 
-      {/* Menu des genres (affiché uniquement quand un type de contenu est sélectionné) */}
+      {/* Menu des genres */}
       {(contentType === "film" || contentType === "série") && (
         <div className="netflix-genre-bar">
           <div className="netflix-genre-container">
@@ -601,7 +400,6 @@ export default function UserPage() {
               <span>{selectedGenre === "all" ? "Tous les genres" : selectedGenre}</span>
               <span className="netflix-genre-arrow">▼</span>
 
-              {/* Menu déroulant des genres */}
               {isGenreMenuOpen && (
                 <div className="netflix-genre-dropdown">
                   <div
@@ -632,7 +430,7 @@ export default function UserPage() {
         </div>
       )}
 
-      {/* Featured Content - Affiché uniquement sur la page d'accueil ou si aucun genre n'est sélectionné */}
+      {/* Featured Content */}
       {featuredMovie && !isLoading && (contentType === "all" || selectedGenre === "all") && (
         <div className="netflix-featured">
           <div className="netflix-featured-content">
@@ -644,10 +442,10 @@ export default function UserPage() {
             </div>
             <p className="netflix-featured-desc">{featuredMovie.description}</p>
             <div className="netflix-featured-buttons">
-              <button className="netflix-play-button" onClick={() => openMovieModal(featuredMovie)}>
+              <button className="netflix-play-button" onClick={() => openMovieDetail(featuredMovie)}>
                 ▶ Lecture
               </button>
-              <button className="netflix-more-button" onClick={() => openMovieModal(featuredMovie)}>
+              <button className="netflix-more-button" onClick={() => openMovieDetail(featuredMovie)}>
                 ℹ️ Plus d'infos
               </button>
             </div>
@@ -713,7 +511,7 @@ export default function UserPage() {
                     <div
                       key={movie._id || movie.id}
                       className="netflix-grid-item"
-                      onClick={() => openMovieModal(movie)}
+                      onClick={() => openMovieDetail(movie)}
                     >
                       <div className="netflix-grid-img">
                         <Image
@@ -743,16 +541,15 @@ export default function UserPage() {
               </div>
             )}
 
-            {/* Affichage par catégories - uniquement sur la page d'accueil */}
+            {/* Affichage par catégories */}
             {contentType === "all" && selectedGenre === "all" && (
               <>
-                {/* Tous les films et séries */}
                 {allMovies.length > 0 && (
                   <div className="netflix-row">
                     <h2 className="netflix-row-title">Tous les films et séries</h2>
                     <div className="netflix-row-content">
                       {allMovies.map((movie) => (
-                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieDetail(movie)}>
                           <Image
                             src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                             alt={movie.title}
@@ -778,13 +575,12 @@ export default function UserPage() {
                   </div>
                 )}
 
-                {/* Populaires */}
                 {popularMovies.length > 0 && (
                   <div className="netflix-row">
                     <h2 className="netflix-row-title">Populaires sur Jekle</h2>
                     <div className="netflix-row-content">
                       {popularMovies.map((movie) => (
-                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieDetail(movie)}>
                           <Image
                             src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                             alt={movie.title}
@@ -810,13 +606,12 @@ export default function UserPage() {
                   </div>
                 )}
 
-                {/* Action */}
                 {actionMovies.length > 0 && (
                   <div className="netflix-row">
                     <h2 className="netflix-row-title">Action</h2>
                     <div className="netflix-row-content">
                       {actionMovies.map((movie) => (
-                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieDetail(movie)}>
                           <Image
                             src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                             alt={movie.title}
@@ -842,13 +637,12 @@ export default function UserPage() {
                   </div>
                 )}
 
-                {/* Drame */}
                 {dramaMovies.length > 0 && (
                   <div className="netflix-row">
                     <h2 className="netflix-row-title">Drame</h2>
                     <div className="netflix-row-content">
                       {dramaMovies.map((movie) => (
-                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieDetail(movie)}>
                           <Image
                             src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                             alt={movie.title}
@@ -874,13 +668,12 @@ export default function UserPage() {
                   </div>
                 )}
 
-                {/* Science Fiction */}
                 {scifiMovies.length > 0 && (
                   <div className="netflix-row">
                     <h2 className="netflix-row-title">Science Fiction</h2>
                     <div className="netflix-row-content">
                       {scifiMovies.map((movie) => (
-                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieModal(movie)}>
+                        <div key={movie._id || movie.id} className="netflix-item" onClick={() => openMovieDetail(movie)}>
                           <Image
                             src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
                             alt={movie.title}
@@ -906,7 +699,6 @@ export default function UserPage() {
                   </div>
                 )}
 
-                {/* Afficher les genres disponibles */}
                 {availableGenres.map((genre) => {
                   const genreMovies = getMoviesByGenre(genre)
                   if (genreMovies.length > 0) {
@@ -918,7 +710,7 @@ export default function UserPage() {
                             <div
                               key={movie._id || movie.id}
                               className="netflix-item"
-                              onClick={() => openMovieModal(movie)}
+                              onClick={() => openMovieDetail(movie)}
                             >
                               <Image
                                 src={movie.thumbnailUrl || "/placeholder.svg?height=300&width=200"}
@@ -952,40 +744,6 @@ export default function UserPage() {
           </>
         )}
       </main>
-
-      {/* Modal */}
-      <div id="videoModal" className="netflix-modal">
-        <div className="netflix-modal-content">
-          <span className="netflix-modal-close">&times;</span>
-          {selectedMovie?.type === "série" && selectedMovie?.episodes && (
-            <select
-              id="episodeSelector"
-              className="netflix-episode-selector"
-              value={selectedEpisode}
-              onChange={handleEpisodeChange}
-              aria-label="Sélectionner un épisode"
-            >
-              {selectedMovie.episodes.map((_, index: number) => (
-                <option key={index} value={index}>
-                  Épisode {index + 1}
-                </option>
-              ))}
-            </select>
-          )}
-          <iframe
-            id="videoPlayer"
-            width="100%"
-            height="500"
-            src=""
-            frameBorder="0"
-            allowFullScreen
-            allow="autoplay; encrypted-media"
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            title="Lecteur vidéo"
-          ></iframe>
-          <div id="movieDetails" className="netflix-modal-details"></div>
-        </div>
-      </div>
 
       {/* Modal de profil */}
       {isProfileModalOpen && (
