@@ -105,30 +105,40 @@ const generateTokens = (user) => {
   return { token, refreshToken }
 }
 
-// Fonction pour valider et transformer les liens vidéo
-const processVideoLink = (link, linkType) => {
-  if (linkType === "drive") {
-    // Google Drive : accepter directement le lien
-    // Format attendu : https://drive.google.com/file/d/XXX/preview
-    const driveRegex = /https:\/\/drive\.google\.com\/file\/d\/[a-zA-Z0-9_-]+\/preview/
-    if (!driveRegex.test(link)) {
-      throw new Error(
-        "Lien Google Drive invalide. Format attendu: https://drive.google.com/file/d/[ID]/preview",
-      )
-    }
-    return link
-  } else if (linkType === "fsvid") {
-    // FSvid : transformer /d/<id>.html en https://fsvid.lol/embed-<id>.html
-    const fsvidRegex = /\/d\/([a-zA-Z0-9_-]+)\.html/
-    const match = link.match(fsvidRegex)
-    if (!match) {
-      throw new Error("Lien FSvid invalide. Format attendu: /d/<id>.html")
-    }
-    const videoId = match[1]
-    return `https://fsvid.lol/embed-${videoId}.html`
-  } else {
-    throw new Error("Type de lien invalide. Doit être 'drive' ou 'fsvid'")
+// ==================== FONCTION JEKLE-EMBED ====================
+/**
+ * Transforme un ID ou lien vidéo en URL Jekle-Embed
+ * Formats acceptés :
+ * - ID seul : z0cbwenpei6k
+ * - Lien complet : https://jeklevid.onrender.com/watch/z0cbwenpei6k
+ * Retour : https://jeklevid.onrender.com/watch/z0cbwenpei6k
+ */
+const processJekleEmbedLink = (input) => {
+  if (!input) {
+    throw new Error("Lien vidéo requis")
   }
+
+  // Si c'est déjà un lien complet jeklevid, le retourner tel quel
+  const jeklevidRegex = /^https:\/\/jeklevid\.onrender\.com\/watch\/[a-zA-Z0-9_-]+$/
+  if (jeklevidRegex.test(input)) {
+    return input
+  }
+
+  // Extraire l'ID depuis un lien complet
+  const idFromLinkMatch = input.match(/\/watch\/([a-zA-Z0-9_-]+)/)
+  if (idFromLinkMatch) {
+    return `https://jeklevid.onrender.com/watch/${idFromLinkMatch[1]}`
+  }
+
+  // Si c'est juste un ID (sans slashes ni protocole)
+  const idRegex = /^[a-zA-Z0-9_-]+$/
+  if (idRegex.test(input.trim())) {
+    return `https://jeklevid.onrender.com/watch/${input.trim()}`
+  }
+
+  throw new Error(
+    "Format de lien invalide. Utilisez soit un ID (ex: z0cbwenpei6k) soit un lien complet (https://jeklevid.onrender.com/watch/z0cbwenpei6k)"
+  )
 }
 
 // ==================== ROUTES ====================
@@ -139,19 +149,9 @@ app.get("/", (req, res) => {
   res.json({
     message: "🎬 API Jekle fonctionnelle !",
     timestamp: new Date().toISOString(),
-    version: "1.0.0",
+    version: "2.0.0",
     status: "active",
-    routes: {
-      auth: ["POST /login", "POST /signup", "POST /refresh-token", "GET /check-auth"],
-      movies: ["GET /movies", "POST /movies (admin)", "PUT /movies/:id (admin)", "DELETE /movies/:id (admin)"],
-      requests: [
-        "GET /movie-requests",
-        "POST /movie-requests",
-        "POST /movie-requests/:id/approve (admin)",
-        "POST /movie-requests/:id/reject (admin)",
-      ],
-      admin: ["GET /admin/stats", "GET /admin/users", "POST /admin/users/:id/ban"],
-    },
+    features: ["Jekle-Embed Integration", "Individual Movie Pages", "Auto Link Transform"],
   })
 })
 
@@ -428,6 +428,43 @@ app.get("/check-auth", authenticateToken, async (req, res) => {
   }
 })
 
+// Mise à jour du profil
+app.post("/update-profile", authenticateToken, async (req, res) => {
+  try {
+    const { username } = req.body
+
+    if (!username || username.length < 3) {
+      return res.status(400).json({ message: "Nom d'utilisateur invalide" })
+    }
+
+    if (req.user.id === "admin") {
+      return res.status(400).json({ message: "Impossible de modifier le profil admin" })
+    }
+
+    const { db } = await connectToDatabase()
+
+    // Vérifier si le nom existe déjà
+    const existingUser = await db.collection("users").findOne({ 
+      username, 
+      _id: { $ne: new ObjectId(req.user.id) } 
+    })
+
+    if (existingUser) {
+      return res.status(400).json({ message: "Ce nom d'utilisateur est déjà pris" })
+    }
+
+    await db.collection("users").updateOne(
+      { _id: new ObjectId(req.user.id) },
+      { $set: { username, updatedAt: new Date() } }
+    )
+
+    res.json({ message: "Profil mis à jour avec succès", username })
+  } catch (error) {
+    console.error("Profile update error:", error)
+    res.status(500).json({ message: "Erreur lors de la mise à jour" })
+  }
+})
+
 // ==================== MOVIES ROUTES ====================
 
 // Récupérer les films
@@ -505,11 +542,20 @@ app.get("/movies/:id", authenticateToken, async (req, res) => {
   }
 })
 
-// Ajouter un film (Admin seulement)
+// Ajouter un film (Admin seulement) - AVEC JEKLE-EMBED
 app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
   try {
-    const { title, type, duration, description, genre, releaseYear, thumbnailUrl, videoUrl, videoLinkType, episodes } =
-      req.body
+    const { 
+      title, 
+      type, 
+      duration, 
+      description, 
+      genre, 
+      releaseYear, 
+      thumbnailUrl, 
+      videoUrl,
+      episodes 
+    } = req.body
 
     const requiredFields = ["title", "type", "duration", "description", "genre", "releaseYear", "thumbnailUrl"]
     const missingFields = requiredFields.filter((field) => !req.body[field])
@@ -525,33 +571,30 @@ app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Le type doit être 'film' ou 'série'" })
     }
 
+    // Validation pour les films
     if (type === "film") {
-      if (!videoUrl || !videoLinkType) {
-        return res.status(400).json({ message: "URL vidéo et type de lien requis pour un film" })
-      }
-      if (!["drive", "fsvid"].includes(videoLinkType)) {
-        return res.status(400).json({ message: "Type de lien invalide. Doit être 'drive' ou 'fsvid'" })
+      if (!videoUrl) {
+        return res.status(400).json({ message: "URL vidéo requise pour un film" })
       }
     }
 
+    // Validation pour les séries
     if (type === "série") {
-      if (!episodes || !Array.isArray(episodes)) {
+      if (!episodes || !Array.isArray(episodes) || episodes.length === 0) {
         return res.status(400).json({ message: "Liste d'épisodes requise pour une série" })
       }
+      
+      // Transformer chaque lien d'épisode
       for (let i = 0; i < episodes.length; i++) {
         const episode = episodes[i]
-        if (!episode.url || !episode.linkType) {
+        if (!episode.url) {
           return res.status(400).json({
-            message: `Épisode ${i + 1}: URL vidéo et type de lien requis`,
-          })
-        }
-        if (!["drive", "fsvid"].includes(episode.linkType)) {
-          return res.status(400).json({
-            message: `Épisode ${i + 1}: Type de lien invalide. Doit être 'drive' ou 'fsvid'`,
+            message: `Épisode ${i + 1}: URL vidéo requise`,
           })
         }
         try {
-          episodes[i].url = processVideoLink(episode.url, episode.linkType)
+          episodes[i].url = processJekleEmbedLink(episode.url)
+          console.log(`✅ Episode ${i + 1} URL processed: ${episodes[i].url}`)
         } catch (error) {
           return res.status(400).json({
             message: `Épisode ${i + 1}: ${error.message}`,
@@ -568,10 +611,12 @@ app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(400).json({ message: "Un film avec ce titre et cette année existe déjà" })
     }
 
+    // Transformer le lien vidéo pour les films
     let processedVideoUrl = videoUrl
     if (type === "film") {
       try {
-        processedVideoUrl = processVideoLink(videoUrl, videoLinkType)
+        processedVideoUrl = processJekleEmbedLink(videoUrl)
+        console.log(`✅ Film URL processed: ${processedVideoUrl}`)
       } catch (error) {
         return res.status(400).json({ message: error.message })
       }
@@ -595,7 +640,8 @@ app.post("/movies", authenticateToken, requireAdmin, async (req, res) => {
     const result = await db.collection("movies").insertOne(movieDoc)
     const insertedMovie = await db.collection("movies").findOne({ _id: result.insertedId })
 
-    console.log(`Movie "${title}" added by ${req.user.username}`)
+    console.log(`✅ Movie "${title}" added by ${req.user.username}`)
+    
     res.status(201).json({
       message: "Film ajouté avec succès",
       movie: insertedMovie,
@@ -660,7 +706,7 @@ app.delete("/movies/:id", authenticateToken, requireAdmin, async (req, res) => {
       return res.status(404).json({ message: "Film non trouvé" })
     }
 
-    const result = await db.collection("movies").deleteOne({ _id: new ObjectId(id) })
+    await db.collection("movies").deleteOne({ _id: new ObjectId(id) })
 
     console.log(`Movie "${movie.title}" deleted by ${req.user.username}`)
     res.json({ message: "Film supprimé avec succès" })
@@ -709,14 +755,12 @@ app.post("/movie-requests", authenticateToken, async (req, res) => {
     const imdbRegex = /^https?:\/\/(www\.)?imdb\.com(\/[a-z]{2})?\/title\/tt\d+/
     if (!imdbRegex.test(imdbLink)) {
       return res.status(400).json({
-        message:
-          "Lien IMDB invalide. Format attendu: https://www.imdb.com/title/ttXXXXXXX ou https://www.imdb.com/fr/title/ttXXXXXXX",
+        message: "Lien IMDB invalide",
       })
     }
 
     const { db } = await connectToDatabase()
 
-    // Vérifier si l'utilisateur a déjà demandé ce film
     const existingRequest = await db.collection("movieRequests").findOne({
       userId: req.user.username,
       title,
@@ -753,7 +797,7 @@ app.post("/movie-requests", authenticateToken, async (req, res) => {
   }
 })
 
-// Approuver une demande de film (Admin seulement)
+// Approuver une demande
 app.post("/movie-requests/:requestId/approve", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { requestId } = req.params
@@ -788,7 +832,7 @@ app.post("/movie-requests/:requestId/approve", authenticateToken, requireAdmin, 
   }
 })
 
-// Rejeter une demande de film (Admin seulement)
+// Rejeter une demande
 app.post("/movie-requests/:requestId/reject", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { requestId } = req.params
@@ -825,7 +869,7 @@ app.post("/movie-requests/:requestId/reject", authenticateToken, requireAdmin, a
   }
 })
 
-// Supprimer une demande de film
+// Supprimer une demande
 app.delete("/movie-requests/:requestId", authenticateToken, async (req, res) => {
   try {
     const { requestId } = req.params
@@ -836,7 +880,6 @@ app.delete("/movie-requests/:requestId", authenticateToken, async (req, res) => 
 
     const { db } = await connectToDatabase()
 
-    // Vérifier si l'utilisateur possède la demande ou est admin
     const filter = { _id: new ObjectId(requestId) }
     if (req.user.role !== "admin") {
       filter.userId = req.user.username
@@ -862,29 +905,24 @@ app.get("/admin/stats", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { db } = await connectToDatabase()
 
-    // Statistiques utilisateurs
     const totalUsers = await db.collection("users").countDocuments()
     const bannedUsers = await db.collection("users").countDocuments({ isBanned: true })
 
-    // Nouveaux utilisateurs dans les 7 derniers jours
     const sevenDaysAgo = new Date()
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
     const newUsers = await db.collection("users").countDocuments({
       createdAt: { $gte: sevenDaysAgo },
     })
 
-    // Statistiques contenu
     const totalMovies = await db.collection("movies").countDocuments()
     const totalFilms = await db.collection("movies").countDocuments({ type: "film" })
     const totalSeries = await db.collection("movies").countDocuments({ type: "série" })
 
-    // Statistiques demandes
     const totalRequests = await db.collection("movieRequests").countDocuments()
     const pendingRequests = await db.collection("movieRequests").countDocuments({ status: "pending" })
     const approvedRequests = await db.collection("movieRequests").countDocuments({ status: "approved" })
     const rejectedRequests = await db.collection("movieRequests").countDocuments({ status: "rejected" })
 
-    // Activité récente
     const recentUsers = await db
       .collection("users")
       .find({}, { projection: { password: 0 } })
@@ -923,7 +961,7 @@ app.get("/admin/stats", authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-// Récupérer tous les utilisateurs (Admin seulement)
+// Récupérer tous les utilisateurs
 app.get("/admin/users", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { page = 1, limit = 20, search, status } = req.query
@@ -931,7 +969,6 @@ app.get("/admin/users", authenticateToken, requireAdmin, async (req, res) => {
 
     const { db } = await connectToDatabase()
 
-    // Construire le filtre
     const filter = {}
 
     if (search) {
@@ -969,7 +1006,7 @@ app.get("/admin/users", authenticateToken, requireAdmin, async (req, res) => {
   }
 })
 
-// Bannir/Débannir un utilisateur (Admin seulement)
+// Bannir/Débannir un utilisateur
 app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params
@@ -988,7 +1025,6 @@ app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req
     let updateQuery = {}
 
     if (ban) {
-      // Bannir l'utilisateur
       updateQuery = {
         $set: {
           isBanned: true,
@@ -999,7 +1035,6 @@ app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req
         },
       }
     } else {
-      // Débannir l'utilisateur
       updateQuery = {
         $set: {
           isBanned: false,
@@ -1029,7 +1064,7 @@ app.post("/admin/users/:userId/ban", authenticateToken, requireAdmin, async (req
   }
 })
 
-// Supprimer un utilisateur (Admin seulement)
+// Supprimer un utilisateur
 app.delete("/admin/users/:userId", authenticateToken, requireAdmin, async (req, res) => {
   try {
     const { userId } = req.params
@@ -1040,17 +1075,13 @@ app.delete("/admin/users/:userId", authenticateToken, requireAdmin, async (req, 
 
     const { db } = await connectToDatabase()
 
-    // Récupérer les infos utilisateur avant suppression
     const user = await db.collection("users").findOne({ _id: new ObjectId(userId) })
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" })
     }
 
-    // Supprimer les demandes de films de l'utilisateur
     await db.collection("movieRequests").deleteMany({ userId: user.username })
-
-    // Supprimer l'utilisateur
-    const result = await db.collection("users").deleteOne({ _id: new ObjectId(userId) })
+    await db.collection("users").deleteOne({ _id: new ObjectId(userId) })
 
     console.log(`User ${user.username} deleted by ${req.user.username}`)
     res.json({ message: "Utilisateur supprimé avec succès" })
@@ -1062,38 +1093,15 @@ app.delete("/admin/users/:userId", authenticateToken, requireAdmin, async (req, 
 
 // ==================== ERROR HANDLING ====================
 
-// Gestionnaire d'erreurs 404
 app.use("*", (req, res) => {
   console.log("Route not found:", req.method, req.originalUrl)
   res.status(404).json({
     message: "Route non trouvée",
     path: req.originalUrl,
     method: req.method,
-    availableRoutes: [
-      "GET /",
-      "GET /health",
-      "POST /login",
-      "POST /signup",
-      "POST /refresh-token",
-      "GET /check-auth",
-      "GET /movies",
-      "POST /movies",
-      "PUT /movies/:id",
-      "DELETE /movies/:id",
-      "GET /movie-requests",
-      "POST /movie-requests",
-      "POST /movie-requests/:id/approve",
-      "POST /movie-requests/:id/reject",
-      "DELETE /movie-requests/:id",
-      "GET /admin/stats",
-      "GET /admin/users",
-      "POST /admin/users/:id/ban",
-      "DELETE /admin/users/:id",
-    ],
   })
 })
 
-// Gestionnaire d'erreurs global
 app.use((error, req, res, next) => {
   console.error("Global error:", error)
   res.status(500).json({
@@ -1104,21 +1112,17 @@ app.use((error, req, res, next) => {
 
 // ==================== SERVERLESS HANDLER ====================
 
-// Configuration pour Netlify Functions
 const handler = serverless(app, {
   basePath: "/.netlify/functions/api",
 })
 
 exports.handler = async (event, context) => {
-  // Ne pas attendre la boucle d'événements vide
   context.callbackWaitsForEmptyEventLoop = false
 
   console.log("=== NETLIFY FUNCTION CALLED ===")
   console.log("Method:", event.httpMethod)
   console.log("Path:", event.path)
-  console.log("Query:", event.queryStringParameters)
 
-  // Gérer les requêtes OPTIONS pour CORS
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
