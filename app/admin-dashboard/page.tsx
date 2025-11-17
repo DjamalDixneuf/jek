@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { useRouter } from 'next/navigation'
 import { Menu, X, Search, Film, Tv, Plus, Trash2, ChevronDown } from 'lucide-react'
@@ -45,11 +44,11 @@ export default function AdminDashboardPage() {
     genre: "",
     releaseYear: new Date().getFullYear().toString(),
     thumbnailUrl: "",
-    videoUrl: "",
-    videoLinkType: "drive", // Ajouter le type de lien vidéo
+    videoUrl: "",  // Plus besoin de videoLinkType
     episodeCount: "1",
   })
-  const [episodes, setEpisodes] = useState<{ url: string; description: string; linkType: string }[]>([]) // Ajouter linkType aux épisodes
+  
+  const [episodes, setEpisodes] = useState<{ url: string; description: string }[]>([])
 
   useEffect(() => {
     const token = localStorage.getItem("token")
@@ -179,14 +178,14 @@ export default function AdminDashboardPage() {
       setEpisodes([])
     } else if (name === "type" && value === "série") {
       const count = Number.parseInt(movieFormData.episodeCount) || 1
-      setEpisodes(Array(count).fill({ url: "", description: "", linkType: "drive" })) // Initialiser linkType
+      setEpisodes(Array(count).fill({ url: "", description: "" }))
     } else if (name === "episodeCount" && movieFormData.type === "série") {
       const count = Number.parseInt(value) || 1
       setEpisodes((prev) => {
         const newEpisodes = [...prev]
         if (count > prev.length) {
           for (let i = prev.length; i < count; i++) {
-            newEpisodes.push({ url: "", description: "", linkType: "drive" }) // Initialiser linkType
+            newEpisodes.push({ url: "", description: "" })
           }
         } else if (count < prev.length) {
           return newEpisodes.slice(0, count)
@@ -245,7 +244,7 @@ export default function AdminDashboardPage() {
         episodes: movieFormData.type === "série" ? episodes : [],
       }
 
-      console.log("[v0] Submitting movie data:", movieData)
+      console.log("📤 Submitting movie data:", movieData)
 
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/movies`, {
         method: "POST",
@@ -256,11 +255,11 @@ export default function AdminDashboardPage() {
         body: JSON.stringify(movieData),
       })
 
-      console.log("[v0] Movie response status:", response.status)
+      console.log("📥 Response status:", response.status)
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.log("[v0] Movie error response:", errorData)
+        console.log("❌ Error response:", errorData)
         throw new Error(errorData.message || "Erreur lors de l'ajout du film/série")
       }
 
@@ -276,15 +275,14 @@ export default function AdminDashboardPage() {
         releaseYear: new Date().getFullYear().toString(),
         thumbnailUrl: "",
         videoUrl: "",
-        videoLinkType: "drive",
         episodeCount: "1",
       })
       setEpisodes([])
       setSelectedGenres([])
 
-      alert("Film/série ajouté avec succès!")
+      alert("✅ Film/série ajouté avec succès! Le lien a été automatiquement transformé.")
     } catch (error: any) {
-      console.error("[v0] Error adding movie:", error)
+      console.error("❌ Error adding movie:", error)
       alert(error.message || "Erreur lors de l'ajout du film/série. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
@@ -325,8 +323,6 @@ export default function AdminDashboardPage() {
       const token = localStorage.getItem("token")
       if (!token) throw new Error("No authentication token")
 
-      console.log("[v0] Toggling ban for user:", id, "ban value:", ban)
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL || "/.netlify/functions/api"}/admin/users/${id}/ban`,
         {
@@ -339,18 +335,15 @@ export default function AdminDashboardPage() {
         },
       )
 
-      console.log("[v0] Ban response status:", response.status)
-      const responseBody = await response.json()
-      console.log("[v0] Ban response body:", responseBody)
-
       if (!response.ok) {
+        const responseBody = await response.json()
         throw new Error(responseBody?.message || "Erreur lors de la mise à jour")
       }
 
       setUsers((prev) => prev.map((user) => (user._id === id ? { ...user, isBanned: ban } : user)))
       alert(`Utilisateur ${ban ? "banni" : "débanni"} avec succès!`)
     } catch (error) {
-      console.error("[v0] Error banning user:", error)
+      console.error("Error banning user:", error)
       alert("Erreur lors de la mise à jour du statut de l'utilisateur. Veuillez réessayer.")
     } finally {
       setIsLoading(false)
@@ -726,40 +719,29 @@ export default function AdminDashboardPage() {
                 ></textarea>
               </div>
 
+              {/* FORMULAIRE FILM AVEC JEKLE-EMBED */}
               {movieFormData.type === "film" ? (
-                <>
-                  <div className="form-group">
-                    <label htmlFor="videoLinkType">Type de Lien Vidéo</label>
-                    <select
-                      id="videoLinkType"
-                      name="videoLinkType"
-                      value={movieFormData.videoLinkType}
-                      onChange={handleMovieInputChange}
-                      className="admin-select"
-                    >
-                      <option value="drive">Google Drive</option>
-                      <option value="fsvid">FSvid</option>
-                    </select>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor="videoUrl">URL de la Vidéo</label>
-                    <input
-                      type="url"
-                      id="videoUrl"
-                      name="videoUrl"
-                      value={movieFormData.videoUrl}
-                      onChange={handleMovieInputChange}
-                      placeholder={
-                        movieFormData.videoLinkType === "drive"
-                          ? "https://drive.google.com/file/d/[ID]/preview"
-                          : "/d/[ID].html"
-                      }
-                      required
-                      className="admin-input"
-                    />
-                  </div>
-                </>
+                <div className="form-group">
+                  <label htmlFor="videoUrl">
+                    Lien Vidéo Jekle 
+                    <span style={{ fontSize: '0.85em', color: '#888', marginLeft: '8px' }}>
+                      (ID ou lien complet)
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    id="videoUrl"
+                    name="videoUrl"
+                    value={movieFormData.videoUrl}
+                    onChange={handleMovieInputChange}
+                    placeholder="Ex: z0cbwenpei6k OU https://jeklevid.onrender.com/watch/z0cbwenpei6k"
+                    required
+                    className="admin-input"
+                  />
+                  <small style={{ color: '#666', marginTop: '4px', display: 'block' }}>
+                    💡 Le système transformera automatiquement en : https://jeklevid.onrender.com/watch/[ID]
+                  </small>
+                </div>
               ) : (
                 <div className="form-group">
                   <label htmlFor="episodeCount">Nombre d'épisodes</label>
@@ -780,30 +762,18 @@ export default function AdminDashboardPage() {
                         <h4>Épisode {index + 1}</h4>
 
                         <div className="form-group">
-                          <label htmlFor={`episodeLinkType${index}`}>Type de Lien</label>
-                          <select
-                            id={`episodeLinkType${index}`}
-                            value={episode.linkType || "drive"}
-                            onChange={(e) => handleEpisodeChange(index, "linkType", e.target.value)}
-                            className="admin-select"
-                          >
-                            <option value="drive">Google Drive</option>
-                            <option value="fsvid">FSvid</option>
-                          </select>
-                        </div>
-
-                        <div className="form-group">
-                          <label htmlFor={`episodeUrl${index}`}>URL de l'épisode</label>
+                          <label htmlFor={`episodeUrl${index}`}>
+                            Lien Vidéo Jekle
+                            <span style={{ fontSize: '0.85em', color: '#888', marginLeft: '8px' }}>
+                              (ID ou lien complet)
+                            </span>
+                          </label>
                           <input
-                            type="url"
+                            type="text"
                             id={`episodeUrl${index}`}
                             value={episode.url}
                             onChange={(e) => handleEpisodeChange(index, "url", e.target.value)}
-                            placeholder={
-                              episode.linkType === "drive"
-                                ? "https://drive.google.com/file/d/[ID]/preview"
-                                : "/d/[ID].html"
-                            }
+                            placeholder="Ex: z0cbwenpei6k"
                             required
                             className="admin-input"
                           />
