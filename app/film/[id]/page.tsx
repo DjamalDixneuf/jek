@@ -120,7 +120,6 @@ export default function FilmPage() {
                 src={videoUrl}
                 className="w-full h-full"
                 frameBorder="0"
-                allowFullScreen
                 allow="autoplay; encrypted-media; fullscreen"
                 title={movie.title}
               />
@@ -132,26 +131,8 @@ export default function FilmPage() {
           </div>
 
           {/* Sélecteur d'épisodes pour les séries */}
-          {movie.type === 'série' && movie.episodes && movie.episodes.length > 0 && (
-            <div className="mb-8">
-              <h3 className="text-white text-xl font-bold mb-4">Épisodes</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {movie.episodes.map((episode: any, index: number) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedEpisode(index)}
-                    className={`px-4 py-3 rounded-md font-medium transition-all ${
-                      selectedEpisode === index
-                        ? 'bg-red-600 text-white shadow-lg scale-105'
-                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                    }`}
-                  >
-                    Épisode {index + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <div>
+          </div>
 
           {/* Informations du film */}
           <div className="grid md:grid-cols-[300px_1fr] gap-8">
