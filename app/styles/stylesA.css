@@ -1760,7 +1760,7 @@ body {
   width: 200px;
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 1500;
   animation: fadeIn 0.2s ease;
 }
 
@@ -1812,3 +1812,4 @@ body {
     margin-top: 60px;
   }
 }
+
