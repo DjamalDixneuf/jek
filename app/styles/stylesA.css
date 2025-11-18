@@ -75,7 +75,15 @@ body {
   filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
 }
 
-/* Navigation Netflix */
+/* Navigation Netflix avec sélecteur de genres */
+.netflix-nav {
+  display: flex;
+  list-style: none;
+  gap: 20px;
+  align-items: center;
+  position: relative;
+}
+
 .netflix-nav ul {
   display: flex;
   list-style: none;
@@ -92,6 +100,85 @@ body {
 
 .netflix-nav li:hover,
 .netflix-nav li.active {
+  color: white;
+}
+
+/* Sélecteur de genres intégré à la navigation */
+.netflix-genre-selector {
+  position: relative;
+  padding: 8px 15px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.netflix-genre-selector:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.netflix-genre-selector.active {
+  background-color: #1a73e8;
+  color: white;
+}
+
+.netflix-genre-arrow {
+  font-size: 10px;
+  transition: transform 0.3s ease;
+}
+
+.netflix-genre-selector.active .netflix-genre-arrow {
+  transform: rotate(180deg);
+}
+
+/* Dropdown des genres s'affiche en bas du sélecteur dans le header */
+.netflix-genre-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 8px;
+  background-color: #181818;
+  border-radius: 4px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  width: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1100;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  animation: fadeIn 0.2s ease;
+}
+
+.netflix-genre-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.netflix-genre-dropdown-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  white-space: nowrap;
+  color: white;
+  font-size: 14px;
+}
+
+.netflix-genre-dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.netflix-genre-dropdown-item.active {
+  background-color: #1a73e8;
   color: white;
 }
 
@@ -206,7 +293,7 @@ body {
   transform: translateY(-8px) rotate(-45deg);
 }
 
-/* Barre de genres - juste sous le header */
+/* Barre de genres - supprimée de la vue par défaut */
 .netflix-genre-bar {
   position: relative;
   top: auto;
@@ -221,6 +308,11 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
   margin-top: 60px;
+  display: none;
+}
+
+.netflix-genre-bar.active {
+  display: block;
 }
 
 .netflix-genre-container {
@@ -247,76 +339,14 @@ body {
   color: white;
 }
 
-/* Sélecteur de genres - position relative pour contenir le dropdown */
-.netflix-genre-selector {
-  position: relative;
-  padding: 8px 15px;
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  transition: all 0.3s ease;
-}
-
-.netflix-genre-selector:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.netflix-genre-selector.active {
-  background-color: #1a73e8;
-}
-
-.netflix-genre-arrow {
-  font-size: 10px;
-  transition: transform 0.3s ease;
-}
-
-.netflix-genre-selector.active .netflix-genre-arrow {
-  transform: rotate(180deg);
-}
-
-/* Dropdown des genres - maintenant positionné en bas de la barre */
-.netflix-genre-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 10px;
-  background-color: #181818;
-  border-radius: 4px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-  width: 200px;
-  max-height: 300px;
-  overflow-y: auto;
-  z-index: 1100;
-  animation: fadeIn 0.2s ease;
-}
-
-.netflix-genre-dropdown-item {
-  padding: 10px 15px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
-}
-
-.netflix-genre-dropdown-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.netflix-genre-dropdown-item.active {
-  background-color: #1a73e8;
-  color: white;
-}
-
-/* Contenu principal avec marge pour header et genre bar */
+/* Contenu principal avec marge pour header */
 .netflix-featured {
   position: relative;
   height: 80vh;
   min-height: 500px;
   margin-bottom: 20px;
   overflow: hidden;
-  margin-top: 0;
+  margin-top: 60px;
 }
 
 .netflix-featured-img {
@@ -553,7 +583,7 @@ body {
 /* Vue en grille filtrée */
 .netflix-filtered-content {
   padding: 20px 60px;
-  margin-top: 0;
+  margin-top: 60px;
 }
 
 .netflix-section-title {
@@ -1063,3 +1093,188 @@ body {
   border-radius: 50%;
   border-top-color: #1a73e8;
   animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 1200px) {
+  .netflix-featured-content {
+    width: 70%;
+  }
+}
+
+@media (max-width: 992px) {
+  .netflix-featured-title {
+    font-size: 2.5rem;
+  }
+
+  .netflix-featured-desc {
+    font-size: 1rem;
+  }
+
+  .netflix-nav ul {
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .netflix-header-left {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .netflix-nav {
+    display: flex;
+    overflow-x: auto;
+    width: 100%;
+    padding-bottom: 5px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .netflix-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .netflix-nav ul {
+    display: flex;
+    gap: 15px;
+    padding-right: 10px;
+    width: 100%;
+  }
+
+  .netflix-nav li {
+    font-size: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .netflix-item:hover {
+    transform: scale(1.1);
+  }
+
+  .netflix-grid-item:hover {
+    transform: scale(1.03);
+  }
+}
+
+@media (max-width: 576px) {
+  .netflix-header {
+    flex-wrap: wrap;
+    padding: 10px 4%;
+  }
+
+  .netflix-header-left {
+    width: 100%;
+    margin-bottom: 10px;
+    order: 1;
+  }
+
+  .netflix-header-right {
+    width: 100%;
+    justify-content: flex-end;
+    order: 0;
+    margin-bottom: 10px;
+  }
+
+  .netflix-logo {
+    margin-right: 10px;
+  }
+
+  .netflix-nav {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .netflix-nav ul {
+    width: auto;
+    flex-wrap: nowrap;
+  }
+
+  .netflix-featured {
+    margin-top: 90px;
+  }
+}
+
+/* Optimisations pour améliorer les performances */
+.netflix-item,
+.netflix-grid-item,
+.netflix-card,
+.netflix-play-button,
+.netflix-more-button {
+  will-change: transform;
+}
+
+.netflix-header,
+.netflix-search input,
+.netflix-dropdown-menu,
+.netflix-item-info,
+.netflix-grid-overlay,
+.netflix-genre-dropdown {
+  will-change: opacity, transform;
+}
+
+.netflix-item-img,
+.netflix-grid-thumbnail,
+.netflix-thumbnail {
+  content-visibility: auto;
+}
+
+.netflix-header,
+.netflix-genre-bar {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.netflix-row-content {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.netflix-modal,
+.netflix-profile-modal {
+  contain: content;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.netflix-featured-img img,
+.netflix-item-img,
+.netflix-grid-thumbnail,
+.netflix-thumbnail {
+  loading: lazy;
+}
+
+@media (max-width: 768px) {
+  .netflix-item:hover {
+    transform: scale(1.1);
+  }
+
+  .netflix-grid-item:hover {
+    transform: scale(1.03);
+  }
+}
