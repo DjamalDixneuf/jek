@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Heart, Play, Star, Clock, Calendar, Film } from 'lucide-react'
+import { ArrowLeft, Heart } from 'lucide-react'
 
 export default function WatchPage() {
   const router = useRouter()
-  const { id } = useParams()
+  const { id } = useParams() // ← c'est l'ObjectId MongoDB
 
   const [movie, setMovie] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -17,9 +17,7 @@ export default function WatchPage() {
     if (!id) return
 
     const fetchMovie = async () => {
-      setIsLoading(true)
       const token = localStorage.getItem('token')
-
       if (!token) {
         router.push('/login')
         return
@@ -31,10 +29,10 @@ export default function WatchPage() {
         })
 
         if (!res.ok) throw new Error('Film non trouvé')
-
         const data = await res.json()
         setMovie(data)
 
+        // Favoris local
         const favs = JSON.parse(localStorage.getItem('favorites') || '[]')
         setIsFavorite(favs.includes(data._id))
 
@@ -60,26 +58,14 @@ export default function WatchPage() {
     setIsFavorite(!isFavorite)
   }
 
-  // PRIORITÉ : videoId → videoUrl → fallback
-  const getVideoId = () => {
-    if (movie?.videoId) return movie.videoId
-    if (movie?.videoUrl) {
-      const match = movie.videoUrl.match(/\/watch\/([a-zA-Z0-9_-]+)/)
-      return match ? match[1] : ''
-    }
-    return ''
-  }
-
-  const videoId = getVideoId()
+  // ON FAIT EXACTEMENT COMME TON EJS → dintezuvio.com/embed/ID_VIDÉO
+  const videoId = movie?.videoId || movie?.videoUrl?.split('/watch/')[1] || ''
   const embedUrl = videoId ? `https://dintezuvio.com/embed/${videoId}` : ''
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0a0b0f] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-20 h-20 border-4 border-t-transparent border-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
-          <p className="text-2xl text-white">Chargement du film...</p>
-        </div>
+        <div className="text-white text-2xl">Chargement...</div>
       </div>
     )
   }
@@ -87,119 +73,110 @@ export default function WatchPage() {
   if (!movie) return null
 
   return (
-    <>
-      <div className="min-h-screen bg-[#0a0b0f] text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#0a0b0f] text-white">
 
-        {/* Fond galactique */}
-        <div className="fixed inset-0 pointer-events-none opacity-70">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl animate-pulse delay-1000" />
+      {/* Particules flottantes (comme ton EJS) */}
+      <div className="fixed inset-0 pointer-events-none">
+        {[...Array(20)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-2 h-2 bg-blue-500 rounded-full opacity-30 animate-float"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${Math.random() * 15}s`,
+              animationDuration: `${15 + Math.random() * 10}s`
+            }}
+          />
+        ))}
+      </div>
+
+      <div className="container max-w-6xl mx-auto px-4 pt-8 pb-20">
+
+        {/* Header comme ton EJS */}
+        <div className="flex justify-between items-center mb-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-3 bg-white/10 hover:bg-white/20 backdrop-blur px-6 py-3 rounded-full transition"
+          >
+            <ArrowLeft size={24} />
+            Retour
+          </button>
+
+          <button
+            onClick={toggleFavorite}
+            className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold transition ${
+              isFavorite 
+                ? 'bg-red-600 text-white' 
+                : 'bg-white/10 hover:bg-white/20 backdrop-blur'
+            }`}
+          >
+            <Heart size={22} fill={isFavorite ? 'white' : 'none'} />
+            {isFavorite ? 'Ajouté !' : 'Ajouter aux favoris'}
+          </button>
         </div>
 
-        {/* Header */}
-        <header className="fixed top-0 inset-x-0 z-50 bg-black/80 backdrop-blur-lg border-b border-white/10">
-          <div className="container mx-auto px-6 py-5 flex justify-between items-center">
-            <button onClick={() => router.back()} className="flex items-center gap-3 hover:text-blue-400 transition">
-              <ArrowLeft size={28} />
-              <span className="text-lg font-medium">Retour</span>
-            </button>
-
-            <button
-              onClick={toggleFavorite}
-              className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold transition-all hover:scale-105 ${
-                isFavorite ? 'bg-red-600 text-white shadow-lg shadow-red-600/50' : 'bg-white/10 backdrop-blur hover:bg-white/20'
-              }`}
-            >
-              <Heart size={22} fill={isFavorite ? 'white' : 'none'} />
-              {isFavorite ? 'Dans les favoris' : 'Ajouter aux favoris'}
-            </button>
+        {/* Lecteur vidéo → EXACTEMENT COMME TON EJS */}
+        <div className="relative bg-black rounded-3xl overflow-hidden shadow-2xl mb-10 border border-white/10">
+          <div className="aspect-video">
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allowFullScreen
+              allow="autoplay; encrypted-media; fullscreen"
+              // ON ENLÈVE LE SANDBOX → comme ton EJS qui marchait
+            />
           </div>
-        </header>
+        </div>
 
-        <main className="container mx-auto px-6 pt-32 pb-20 max-w-7xl">
-
-          {/* Lecteur vidéo */}
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black mb-12 border border-white/10">
-            <div className="aspect-video">
-              {embedUrl ? (
-                <iframe
-                  src={embedUrl}
-                  className="w-full h-full"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-                  title={movie.title}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-                  <p className="text-2xl text-gray-400">Vidéo non disponible</p>
-                </div>
-              )}
-            </div>
+        {/* Infos film → style EJS */}
+        <div className="grid md:grid-cols-[300px_1fr] gap-10">
+          <div>
+            <Image
+              src={movie.thumbnailUrl || '/placeholder.jpg'}
+              alt={movie.title}
+              width={300}
+              height={450}
+              className="rounded-2xl shadow-2xl border border-white/10"
+            />
           </div>
 
-          {/* Infos film */}
-          <div className="grid lg:grid-cols-[380px_1fr] gap-12">
-            <div>
-              <Image
-                src={movie.thumbnailUrl || '/placeholder.jpg'}
-                alt={movie.title}
-                width={380}
-                height={570}
-                className="w-full rounded-3xl shadow-2xl border border-white/10 object-cover"
-              />
+          <div className="space-y-6">
+            <h1 className="text-5xl font-bold bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+              {movie.title} <span className="text-3xl text-gray-400">({movie.releaseYear})</span>
+            </h1>
+
+            <div className="flex items-center gap-8 text-lg">
+              <span>Durée : {movie.duration}</span>
+              <span className="text-yellow-500">8.1/10</span>
             </div>
 
-            <div className="space-y-8">
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-blue-200 to-green-200 bg-clip-text text-transparent">
-                {movie.title}
-              </h1>
-
-              <div className="flex flex-wrap items-center gap-6 text-lg">
-                <div className="flex items-center gap-2">
-                  <Star className="text-yellow-500" fill="currentColor" />
-                  <span>8.1/10</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar />
-                  <span>{movie.releaseYear}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock />
-                  <span>{movie.duration}</span>
-                </div>
-                <div className="px-6 py-2 rounded-full bg-gradient-to-r from-red-600 to-pink-600 font-bold">
-                  <Film className="inline mr-2" size={20} />
-                  Film
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                {(movie.genre || []).map((g: string, i: number) => (
-                  <span key={i} className="px-5 py-2 bg-blue-600/30 border border-blue-500/50 rounded-full backdrop-blur">
-                    {g}
-                  </span>
-                ))}
-              </div>
-
-              <div>
-                <h2 className="text-3xl font-bold mb-4">Synopsis</h2>
-                <p className="text-xl leading-relaxed text-gray-300">
-                  {movie.description}
-                </p>
-              </div>
-
-              <button
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-2xl shadow-blue-600/50 transform hover:scale-105 transition-all"
-              >
-                <Play size={32} fill="white" />
-                Regarder le film
-              </button>
+            <div className="flex flex-wrap gap-3">
+              {(movie.genre || []).map((g: string) => (
+                <span key={g} className="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full text-sm font-medium">
+                  {g}
+                </span>
+              ))}
             </div>
+
+            <p className="text-xl leading-relaxed text-gray-300">
+              {movie.description}
+            </p>
           </div>
-        </main>
+        </div>
       </div>
-    </>
+
+      {/* Animation particules */}
+      <style jsx>{`
+        @keyframes float {
+          0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(-100px) rotate(360deg); opacity: 0; }
+        }
+        .animate-float {
+          animation: float linear infinite;
+        }
+      `}</style>
+    </div>
   )
 }
