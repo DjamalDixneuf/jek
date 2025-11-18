@@ -3,14 +3,13 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Heart, Play, Star, Clock, Calendar, Film, Tv } from 'lucide-react'
+import { ArrowLeft, Heart, Play, Star, Clock, Calendar } from 'lucide-react'
 
 export default function WatchPage() {
   const router = useRouter()
   const { id } = useParams()
 
   const [movie, setMovie] = useState<any>(null)
-  const [selectedEpisode, setSelectedEpisode] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isFavorite, setIsFavorite] = useState(false)
 
@@ -36,12 +35,10 @@ export default function WatchPage() {
         const data = await res.json()
         setMovie(data)
 
-        // Favoris
         const favs = JSON.parse(localStorage.getItem('favorites') || '[]')
         setIsFavorite(favs.includes(data._id))
 
       } catch (err) {
-        console.error(err)
         alert('Film introuvable ou tu n\'es pas connecté')
         router.push('/user')
       } finally {
@@ -63,25 +60,8 @@ export default function WatchPage() {
     setIsFavorite(!isFavorite)
   }
 
-  // LA FONCTION MAGIQUE QUI MARCHE AVEC TA BASE
-  const getEmbedUrl = () => {
-    if (!movie) return ''
-
-    let rawUrl = ''
-
-    if (movie.taper?.trim() === 'série' && movie.épisodes?.[selectedEpisode]) {
-      rawUrl = movie.épisodes[selectedEpisode]["URL de la vidéo"] || ''
-    } else {
-      rawUrl = movie["URL de la vidéo"] || ''
-    }
-
-    if (!rawUrl) return ''
-
-    return rawUrl
-      .replace('https://jeklevid.onrender.com/watch/', 'https://jeklevid.onrender.com/embed/')
-      .replace('https://dintezuvio.com/v/', 'https://dintezuvio.com/embed/')
-      .trim()
-  }
+  // LA MÉTHODE QUI MARCHE À 1000% COMME TON EJS LOCAL
+  const embedUrl = movie ? `https://dintezuvio.com/embed/${id}` : ''
 
   if (isLoading) {
     return (
@@ -96,33 +76,28 @@ export default function WatchPage() {
 
   if (!movie) return null
 
-  const embedUrl = getEmbedUrl()
-
   return (
     <>
       <div className="min-h-screen bg-[#0a0b0f] text-white relative overflow-hidden">
 
         {/* Fond galactique */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-green-900/20" />
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl opacity-20 animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl opacity-20 animate-pulse delay-1000" />
+        <div className="fixed inset-0 pointer-events-none opacity-70">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl animate-pulse delay-1000" />
         </div>
 
         {/* Header */}
-        <header className="fixed top-0 inset-x-0 z-50 bg-gradient-to-b from-black/90 to-transparent backdrop-blur-lg">
+        <header className="fixed top-0 inset-x-0 z-50 bg-black/80 backdrop-blur-lg border-b border-white/10">
           <div className="container mx-auto px-6 py-5 flex justify-between items-center">
             <button onClick={() => router.back()} className="flex items-center gap-3 hover:text-blue-400 transition">
               <ArrowLeft size={28} />
-              <span className="text-lg">Retour</span>
+              <span className="text-lg font-medium">Retour</span>
             </button>
 
             <button
               onClick={toggleFavorite}
               className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold transition-all ${
-                isFavorite
-                  ? 'bg-red-600 text-white shadow-lg shadow-red-600/50'
-                  : 'bg-white/10 backdrop-blur border border-white/20 hover:bg-white/20'
+                isFavorite ? 'bg-red-600 text-white' : 'bg-white/10 backdrop-blur hover:bg-white/20'
               }`}
             >
               <Heart size={22} fill={isFavorite ? 'white' : 'none'} />
@@ -133,95 +108,54 @@ export default function WatchPage() {
 
         <main className="container mx-auto px-6 pt-32 pb-20 max-w-7xl">
 
-          {/* Lecteur vidéo */}
-          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black/60 backdrop-blur border border-white/10 mb-12">
+          {/* Lecteur vidéo - DINTEZUVIO DIRECT */}
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black mb-12 border border-white/10">
             <div className="aspect-video">
-              {embedUrl ? (
-                <iframe
-                  src={embedUrl}
-                  className="w-full h-full"
-                  allowFullScreen
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
-                  <p className="text-2xl text-gray-500">Vidéo non disponible</p>
-                </div>
-              )}
+              <iframe
+                src={embedUrl}
+                className="w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media; picture-in-picture"
+                sandbox="allow-scripts allow-same-origin allow-presentation"
+              />
             </div>
           </div>
 
-          {/* Sélecteur épisodes (si série) */}
-          {movie.taper?.trim() === 'série' && movie.épisodes?.length > 0 && (
-            <div className="mb-12">
-              <h3 className="text-2xl font-bold mb-6 flex items-center gap-3">
-                <Tv className="text-purple-400" /> Épisodes
-              </h3>
-              <div className="grid grid-cols-3 md:grid-cols-5 lg:grid-cols-8 gap-4">
-                {movie.épisodes.map((_: any, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setSelectedEpisode(i)}
-                    className={`py-4 rounded-2xl font-bold transition-all ${
-                      selectedEpisode === i
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 shadow-xl'
-                        : 'bg-white/10 backdrop-blur hover:bg-white/20'
-                    }`}
-                  >
-                    Ép {i + 1}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
           {/* Infos film */}
           <div className="grid lg:grid-cols-[380px_1fr] gap-12">
-            {/* Affiche */}
-            <div className="relative group">
-              <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-                <Image
-                  src={movie["vignetteURL"] || '/placeholder.jpg'}
-                  alt={movie.titre}
-                  width={380}
-                  height={570}
-                  className="w-full object-cover group-hover:scale-105 transition duration-700"
-                />
-              </div>
+            <div>
+              <Image
+                src={movie["vignetteURL"] || '/placeholder.jpg'}
+                alt={movie.titre}
+                width={380}
+                height={570}
+                className="w-full rounded-3xl shadow-2xl border border-white/10"
+              />
             </div>
 
-            {/* Détails */}
             <div className="space-y-8">
-              <div>
-                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-blue-200 to-green-200 bg-clip-text text-transparent mb-6">
-                  {movie.titre}
-                </h1>
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white to-blue-300 bg-clip-text text-transparent">
+                {movie.titre}
+              </h1>
 
-                <div className="flex flex-wrap items-center gap-6 text-lg">
-                  <div className="flex items-center gap-2">
-                    <Star className="text-yellow-500" fill="currentColor" />
-                    <span>8.1/10</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Calendar />
-                    {movie["année de sortie"]}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock />
-                    {movie.durée}
-                  </div>
-                  <div className="px-6 py-2 rounded-full font-bold bg-gradient-to-r from-red-600 to-pink-600">
-                    <Film size={20} className="inline mr-2" />
-                    Film
-                  </div>
+              <div className="flex flex-wrap items-center gap-6 text-lg">
+                <div className="flex items-center gap-2">
+                  <Star className="text-yellow-500" fill="currentColor" />
+                  <span>8.1/10</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar />
+                  {movie["année de sortie"]}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock />
+                  {movie.durée}
                 </div>
               </div>
 
-              {/* Genres */}
               <div className="flex flex-wrap gap-3">
                 {(movie.genre || []).map((g: string, i: number) => (
-                  <span key={i} className="px-5 py-2 bg-gradient-to-r from-blue-600/30 to-purple-600/30 border border-blue-500/30 rounded-full backdrop-blur">
+                  <span key={i} className="px-5 py-2 bg-blue-600/30 border border-blue-500/50 rounded-full">
                     {g}
                   </span>
                 ))}
@@ -235,8 +169,8 @@ export default function WatchPage() {
               </div>
 
               <button
-                onClick={() => window.scrollTo({ top: 400, behavior: 'smooth' })}
-                className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-2xl shadow-blue-600/50 transform hover:scale-105 transition-all"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-2xl shadow-blue-600/50 transform hover:scale-105 transition-all"
               >
                 <Play size={32} fill="white" />
                 Regarder le film
