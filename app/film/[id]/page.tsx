@@ -7,11 +7,12 @@ import { ArrowLeft, Heart, Play, Star, Clock, Calendar } from 'lucide-react'
 
 export default function WatchPage() {
   const router = useRouter()
-  const { id } = useParams() // ← id = ObjectId MongoDB (ex: 691b7f2dfd690e480e9407b5)
+  const { id } = useParams()
 
   const [movie, setMovie] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isFavorite, setIsFavorite] = useState(false)
+  const [debugInfo, setDebugInfo] = useState('') // DEBUG : pour voir ce qui se passe
 
   useEffect(() => {
     if (!id) return
@@ -35,11 +36,17 @@ export default function WatchPage() {
         const data = await res.json()
         setMovie(data)
 
+        // DEBUG : Afficher le champ URL
+        const rawUrl = data["URL de la vidéo"] || 'VIDE !'
+        console.log('=== DEBUG URL BRUTE ===', rawUrl) // Dans la console
+        setDebugInfo(`URL brute : ${rawUrl}`)
+
         // Favoris
         const favs = JSON.parse(localStorage.getItem('favorites') || '[]')
         setIsFavorite(favs.includes(data._id))
 
       } catch (err) {
+        console.error(err)
         alert('Film introuvable ou tu n\'es pas connecté')
         router.push('/user')
       } finally {
@@ -61,16 +68,30 @@ export default function WatchPage() {
     setIsFavorite(!isFavorite)
   }
 
-  // EXTRAIT L'ID VIDÉO RÉEL DEPUIS LE LIEN DANS LA BASE
+  // EXTRACTION MAGIQUE (avec debug)
   const extractVideoId = () => {
-    if (!movie || !movie["URL de la vidéo"]) return ''
+    if (!movie || !movie["URL de la vidéo"]) {
+      const id = 'CHAMP VIDE OU MANQUANT'
+      console.log('=== DEBUG EXTRACTION ===', id) // Console
+      setDebugInfo(prev => `${prev} | ID extrait : ${id}`)
+      return id
+    }
+    
     const url = movie["URL de la vidéo"].trim()
     const match = url.match(/\/(watch|v|embed)\/([a-zA-Z0-9_-]+)/i)
-    return match ? match[2] : ''
+    const videoId = match ? match[2] : 'PAS TROUVÉ DANS L\'URL'
+    
+    console.log('=== DEBUG MATCH ===', { url, videoId }) // Console
+    setDebugInfo(prev => `${prev} | ID extrait : ${videoId}`)
+    
+    return videoId
   }
 
-  // URL D'EMBED DINTEZUVIO (100% fonctionnelle)
-  const embedUrl = movie ? `https://dintezuvio.com/embed/${extractVideoId()}` : ''
+  // URL EMBED
+  const videoId = extractVideoId()
+  const embedUrl = videoId && videoId !== 'CHAMP VIDE OU MANQUANT' && videoId !== 'PAS TROUVÉ DANS L\'URL' 
+    ? `https://dintezuvio.com/embed/${videoId}` 
+    : ''
 
   if (isLoading) {
     return (
@@ -95,7 +116,7 @@ export default function WatchPage() {
           <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl animate-pulse delay-1000" />
         </div>
 
-        {/* Header fixe */}
+        {/* Header */}
         <header className="fixed top-0 inset-x-0 z-50 bg-black/80 backdrop-blur-lg border-b border-white/10">
           <div className="container mx-auto px-6 py-5 flex justify-between items-center">
             <button onClick={() => router.back()} className="flex items-center gap-3 hover:text-blue-400 transition">
@@ -117,10 +138,17 @@ export default function WatchPage() {
 
         <main className="container mx-auto px-6 pt-32 pb-20 max-w-7xl">
 
+          {/* DEBUG PANEL (à enlever après) */}
+          <div className="bg-yellow-900/50 border border-yellow-500 p-4 rounded-xl mb-6 text-sm">
+            <p><strong>DEBUG :</strong> {debugInfo}</p>
+            <p><strong>URL finale :</strong> {embedUrl || 'VIDÉO NON DISPONIBLE'}</p>
+            <p><strong>Conseil :</strong> Ouvre la console (F12) pour plus de détails</p>
+          </div>
+
           {/* Lecteur vidéo */}
           <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black mb-12 border border-white/10">
             <div className="aspect-video">
-              {embedUrl && extractVideoId() ? (
+              {embedUrl ? (
                 <iframe
                   src={embedUrl}
                   className="w-full h-full"
@@ -128,6 +156,8 @@ export default function WatchPage() {
                   allow="autoplay; encrypted-media; picture-in-picture"
                   sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                   title={movie.titre}
+                  onLoad={() => console.log('=== IFRAME CHARGÉE ===', embedUrl)} // Debug load
+                  onError={(e) => console.error('=== ERREUR IFRAME ===', e)} // Debug erreur
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
