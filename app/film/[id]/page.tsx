@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import Image from 'next/image'
-import { ArrowLeft, Heart, Play } from 'lucide-react'
+import { ArrowLeft, Heart, Play, Star, Clock, Calendar, Film } from 'lucide-react'
 
 export default function WatchPage() {
   const router = useRouter()
@@ -60,10 +60,11 @@ export default function WatchPage() {
     setIsFavorite(!isFavorite)
   }
 
+  // PRIORITÉ : videoId → videoUrl → fallback
   const getVideoId = () => {
     if (movie?.videoId) return movie.videoId
     if (movie?.videoUrl) {
-      const match = movie.videoUrl.match(/\/watch\/([a-zA-Z0-9_-]+)/i)
+      const match = movie.videoUrl.match(/\/watch\/([a-zA-Z0-9_-]+)/)
       return match ? match[1] : ''
     }
     return ''
@@ -81,152 +82,123 @@ export default function WatchPage() {
         </div>
       </div>
     )
+  }
 
   if (!movie) return null
 
   return (
     <>
-      {/* On applique exactement le style de ton index.css (galactique + glassmorphism) */}
-      <div className="min-h-screen bg-[#0a0b0f] text-white font-['Poppins'] relative overflow-hidden">
-        {/* Fond galactique exact de ton index.css */}
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-green-900/10" />
-          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl opacity-10 animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl opacity-10 animate-pulse delay-1000" />
+      <div className="min-h-screen bg-[#0a0b0f] text-white relative overflow-hidden">
+
+        {/* Fond galactique */}
+        <div className="fixed inset-0 pointer-events-none opacity-70">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-green-600 rounded-full filter blur-3xl animate-pulse delay-1000" />
         </div>
 
-        {/* Particules flottantes comme dans ton index.css */}
-        <div className="fixed inset-z-10 fixed inset-0 overflow-hidden">
-          {[...Array(30)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 bg-blue-400 rounded-full opacity-40 animate-float"
-              style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 10}s`,
-                animationDuration: `${15 + Math.random() * 15}s`
-              }}
-            />
-          ))}
-        </div>
+        {/* Header */}
+        <header className="fixed top-0 inset-x-0 z-50 bg-black/80 backdrop-blur-lg border-b border-white/10">
+          <div className="container mx-auto px-6 py-5 flex justify-between items-center">
+            <button onClick={() => router.back()} className="flex items-center gap-3 hover:text-blue-400 transition">
+              <ArrowLeft size={28} />
+              <span className="text-lg font-medium">Retour</span>
+            </button>
 
-        <div className="relative z-10 min-h-screen flex flex-col">
+            <button
+              onClick={toggleFavorite}
+              className={`flex items-center gap-3 px-6 py-3 rounded-full font-bold transition-all hover:scale-105 ${
+                isFavorite ? 'bg-red-600 text-white shadow-lg shadow-red-600/50' : 'bg-white/10 backdrop-blur hover:bg-white/20'
+              }`}
+            >
+              <Heart size={22} fill={isFavorite ? 'white' : 'none'} />
+              {isFavorite ? 'Dans les favoris' : 'Ajouter aux favoris'}
+            </button>
+          </div>
+        </header>
 
-          {/* Header premium comme ton login */}
-          <header className="fixed top-0 inset-x-0 z-50 bg-black/40 backdrop-blur-xl border-b border-white/5">
-            <div className="container mx-auto px-6 py-5 flex justify-between items-center">
-              <button onClick={() => router.back()} className="flex items-center gap-3 text-white hover:text-blue-400 transition">
-                <ArrowLeft size={28} />
-                <span className="text-lg font-medium">Retour</span>
-              </button>
+        <main className="container mx-auto px-6 pt-32 pb-20 max-w-7xl">
 
-              <button
-                onClick={toggleFavorite}
-                className={`flex items-center gap-3 px-8 py-3 rounded-full font-bold transition-all hover:scale-105 ${
-                  isFavorite 
-                    ? 'bg-gradient-to-r from-red-600 to-pink-600 shadow-lg shadow-red-600/50' 
-                    : 'bg-white/10 backdrop-blur border border-white/20 hover:bg-white/20'
-                }`}
-              >
-                <Heart size={24} fill={isFavorite ? 'white' : 'none'} />
-                {isFavorite ? 'Dans les favoris' : 'Ajouter aux favoris'}
-              </button>
+          {/* Lecteur vidéo */}
+          <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-black mb-12 border border-white/10">
+            <div className="aspect-video">
+              {embedUrl ? (
+                <iframe
+                  src={embedUrl}
+                  className="w-full h-full"
+                  allowFullScreen
+                  allow="autoplay; encrypted-media; picture-in-picture"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
+                  title={movie.title}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
+                  <p className="text-2xl text-gray-400">Vidéo non disponible</p>
+                </div>
+              )}
             </div>
-          </header>
+          </div>
 
-          {/* Conteneur principal avec glassmorphism comme ton login card */}
-          <main className="flex-1 container mx-auto px-6 pt-32 pb-20 max-w-7xl">
-            <div className="bg-black/50 backdrop-blur-2xl border border-white/10 rounded-3xl overflow-hidden shadow-2xl">
-              {/* Barre bleue en haut comme ton login card */}
-              <div className="h-2 bg-gradient-to-r from-blue-600 to-cyan-500" />
+          {/* Infos film */}
+          <div className="grid lg:grid-cols-[380px_1fr] gap-12">
+            <div>
+              <Image
+                src={movie.thumbnailUrl || '/placeholder.jpg'}
+                alt={movie.title}
+                width={380}
+                height={570}
+                className="w-full rounded-3xl shadow-2xl border border-white/10 object-cover"
+              />
+            </div>
 
-              {/* Lecteur vidéo */}
-              <div className="relative aspect-video bg-black">
-                {embedUrl ? (
-                  <iframe
-                    src={embedUrl}
-                    className="w-full h-full"
-                    allowFullScreen
-                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                    sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <p className="text-2xl text-gray-500">Vidéo non disponible</p>
-                  </div>
-                )}
-              </div>
+            <div className="space-y-8">
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-blue-200 to-green-200 bg-clip-text text-transparent">
+                {movie.title}
+              </h1>
 
-              {/* Infos film en glassmorphism */}
-              <div className="p-10">
-                <div className="grid lg:grid-cols-[400px_1fr] gap-12">
-                  <div className="relative group">
-                    <Image
-                      src={movie.thumbnailUrl || '/placeholder.jpg'}
-                      alt={movie.title}
-                      width={400}
-                      height={600}
-                      className="w-full rounded-2xl shadow-2xl border border-white/10 object-cover group-hover:scale-105 transition"
-                    />
-                  </div>
-
-                  <div className="space-y-8">
-                    <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-blue-200 to-green-200 bg-clip-text text-transparent">
-                      {movie.title}
-                    </h1>
-
-                    <div className="flex items-center gap-8 text-lg text-gray-300">
-                      <span>{movie.releaseYear}</span>
-                      <span>{movie.duration}</span>
-                      <span className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full font-medium">
-                        {movie.type === 'film' ? 'Film' : 'Série'}
-                      </span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      {(movie.genre || []).map((g: string) => (
-                        <span key={g} className="px-6 py-3 bg-gradient-to-r from-blue-600/30 to-cyan-600/30 border border-blue-500/30 rounded-full backdrop-blur">
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-
-                    <p className="text-xl leading-relaxed text-gray-200 max-w-4xl">
-                      {movie.description}
-                    </p>
-
-                    <button
-                      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                      className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 px-10 py-5 rounded-2xl font-bold text-xl shadow-2xl shadow-blue-600/50 transform hover:scale-105 transition-all"
-                    >
-                      <Play size={32} fill="white" />
-                      Regarder maintenant
-                    </button>
-                  </div>
+              <div className="flex flex-wrap items-center gap-6 text-lg">
+                <div className="flex items-center gap-2">
+                  <Star className="text-yellow-500" fill="currentColor" />
+                  <span>8.1/10</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Calendar />
+                  <span>{movie.releaseYear}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock />
+                  <span>{movie.duration}</span>
+                </div>
+                <div className="px-6 py-2 rounded-full bg-gradient-to-r from-red-600 to-pink-600 font-bold">
+                  <Film className="inline mr-2" size={20} />
+                  Film
                 </div>
               </div>
-            </div>
-          </main>
-        </div>
 
-        <style jsx global>{`
-          @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-          
-          body {
-            font-family: 'Poppins', sans-serif;
-          }
-          
-          @keyframes float {
-            0% { transform: translateY(100vh); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-100px); opacity: 0; }
-          }
-          
-          .animate-float {
-            animation: float linear infinite;
-          }
-        `}</style>
+              <div className="flex flex-wrap gap-3">
+                {(movie.genre || []).map((g: string, i: number) => (
+                  <span key={i} className="px-5 py-2 bg-blue-600/30 border border-blue-500/50 rounded-full backdrop-blur">
+                    {g}
+                  </span>
+                ))}
+              </div>
+
+              <div>
+                <h2 className="text-3xl font-bold mb-4">Synopsis</h2>
+                <p className="text-xl leading-relaxed text-gray-300">
+                  {movie.description}
+                </p>
+              </div>
+
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center gap-4 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white px-10 py-5 rounded-2xl font-bold text-xl shadow-2xl shadow-blue-600/50 transform hover:scale-105 transition-all"
+              >
+                <Play size={32} fill="white" />
+                Regarder le film
+              </button>
+            </div>
+          </div>
+        </main>
       </div>
     </>
   )
